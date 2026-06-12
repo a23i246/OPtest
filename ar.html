@@ -22,6 +22,15 @@
           const mesh = this.el.getObject3D('mesh');
           if (!mesh || !window.THREE) return;
 
+          // ⭕ 親の a-marker から恐竜のIDを取得し、dinosaurs.js から設定を読み込む
+          const markerEl = this.el.closest('a-marker');
+          const dinoId = markerEl ? markerEl.dataset.dinoId : null;
+          const dinoData = window.DINOSAURS ? window.DINOSAURS.find(d => d.id === dinoId) : null;
+
+          // ⭕ dinosaurs.js に設定があればそちらを優先、なければデフォルト値を使用
+          const targetSize = (dinoData && dinoData.arFitTarget !== undefined) ? dinoData.arFitTarget : this.data.target;
+          const yOffsetVal = (dinoData && dinoData.arYOffset !== undefined) ? dinoData.arYOffset : this.data.yOffset;
+
           const scene = this.el.sceneEl;
           if (scene && scene.renderer) {
             try {
@@ -41,12 +50,12 @@
           box.getCenter(center);
 
           const maxSize = Math.max(size.x, size.y, size.z);
-          const scale = maxSize > 0 ? this.data.target / maxSize : 1;
+          const scale = maxSize > 0 ? targetSize / maxSize : 1; // ⭕ 変更
 
           this.el.object3D.scale.set(scale, scale, scale);
           this.el.object3D.position.set(
             -center.x * scale,
-            -box.min.y * scale + this.data.yOffset,
+            -box.min.y * scale + yOffsetVal, // ⭕ 変更
             -center.z * scale
           );
           this.el.object3D.updateMatrixWorld(true);
@@ -60,10 +69,6 @@
       }
     });
 
-    // 黒帯対策について：
-    // 前回のようにMutationObserverや毎フレーム補正でAR.jsのstyleを上書きし続けると、
-    // AR.js標準処理と競合して画面がブレたり黒帯が悪化します。
-    // ここでは連続補正をやめ、A-Frameのcanvasを透明にする最小処理だけにします。
     function makeRendererTransparent() {
       const scene = document.querySelector('a-scene');
       if (!scene || !scene.renderer || !window.THREE) return;
@@ -74,9 +79,6 @@
       } catch (e) {}
     }
 
-    // 右側の黒帯対策：毎フレーム・MutationObserverは使わない。
-    // Chromeのアドレスバー表示時にAR.jsの計算幅が実表示より細くなる端末があるため、
-    // 読み込み時と向き変更時だけ、videoを少し広めに中央配置する。
     function applyARCameraFitOnce() {
       const videos = document.querySelectorAll('video, #arjs-video, .arjs-video');
       const canvases = document.querySelectorAll('a-scene canvas, canvas.a-canvas, .a-canvas');
@@ -232,8 +234,6 @@
       font-weight: 800;
     }
 
-    /* AR.jsが作るカメラ映像とA-Frame canvasの基本配置。
-       ここでは連続JS補正を使わず、CSSの !important だけで最小限にしています。 */
     a-scene {
       position: fixed !important;
       inset: 0 !important;
@@ -323,7 +323,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-protoceratops" fit-gltf-on-marker="target: 1.45; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+        <a-entity gltf-model="#model-protoceratops" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -331,7 +331,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-ravjaa" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+        <a-entity gltf-model="#model-ravjaa" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -339,7 +339,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-corythosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+        <a-entity gltf-model="#model-corythosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -347,7 +347,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-zavacephale" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+        <a-entity gltf-model="#model-zavacephale" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -355,7 +355,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-pinacosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+        <a-entity gltf-model="#model-pinacosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -363,7 +363,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-tarbosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+        <a-entity gltf-model="#model-tarbosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -378,7 +378,6 @@
     const visibleIds = new Set();
     let currentId = null;
 
-    // (以下、ロジック部分は一切変更せず維持しています)
     function updateCount() {
       if (!countEl || typeof getCollection !== 'function') return;
       countEl.textContent = `${getCollection().length} / ${window.DINOSAURS.length}`;
