@@ -2,83 +2,60 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <!-- スマホ表示用。画面幅に合わせて表示するために必要です。 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>コレクション - 恐竜ARスタンプラリー</title>
 
-  <!-- 全ページ共通の見た目。コレクションページのカードやモーダルのCSSもここにあります。 -->
   <link rel="stylesheet" href="css/common.css">
 
-  <!-- モーダル内で3Dモデルを表示するためのA-Frameです。 -->
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
-  <!-- 恐竜データ。名前・説明・画像・3Dモデルの対応表です。内容変更は基本ここ。 -->
   <script src="js/dinosaurs.js"></script>
-
-  <!-- コレクション保存用。localStorageへの保存・読み込み処理が入っています。 -->
   <script src="js/collection.js"></script>
-
-  <!-- このページ専用。カード一覧の表示、詳細モーダル、リセットボタンの処理です。 -->
   <script defer src="js/collection-page.js"></script>
 </head>
 <body>
   <main class="page">
-    <!-- ページ上部のタイトルエリアです。文言やボタンを変えるならここ。 -->
     <section class="hero collection-hero">
       <p class="eyebrow">AR COLLECTION</p>
       <h1>恐竜コレクション図鑑</h1>
       <p>集めた恐竜を確認できます。カードを押すと3Dモデルと説明が開きます。</p>
-
-      <!-- collection-page.js が id="collection-total" に「集めた数 / 全体数」を入れます。 -->
       <p class="collection-status">現在 <strong id="collection-total">0 / 6</strong> 体</p>
 
-      <!-- ナビゲーションボタンです。hrefを書き換えると移動先を変更できます。 -->
       <div class="nav">
         <a class="button" href="ar.html">ARカメラに戻る</a>
         <a class="button secondary" href="index.html">トップへ</a>
-
-        <!-- data-clear-collection が目印。collection-page.js がクリックを検知してリセットします。 -->
         <button class="button light" data-clear-collection>リセット</button>
       </div>
     </section>
 
-    <!-- 恐竜カード一覧の置き場です。中身は collection-page.js が自動で作ります。 -->
     <section class="collection-grid" id="collection-root" aria-live="polite"></section>
   </main>
 
-  <!-- 詳細表示用のモーダルです。普段は非表示で、カードの「詳しく見る」を押すと開きます。 -->
   <div class="modal" id="detail-modal" aria-hidden="true">
-    <!-- 黒い背景部分。クリックすると閉じます。 -->
     <div class="modal-backdrop" data-close-modal></div>
 
     <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <!-- data-close-modal が目印。collection-page.js がクリックを検知して閉じます。 -->
       <button class="modal-close" type="button" data-close-modal aria-label="閉じる">×</button>
 
-      <!-- 3Dモデル表示エリアです。モデル本体は collection-page.js が選んで差し込みます。 -->
       <div class="modal-model" id="modal-model-wrap">
         <a-scene embedded renderer="antialias: true; alpha: true; colorManagement: true; exposure: 1.1" vr-mode-ui="enabled: false" loading-screen="enabled: false">
-          <!-- モデルを明るく見せるライトです。暗い場合は intensity を少し上げます。 -->
           <a-entity light="type: ambient; intensity: 1.7"></a-entity>
           <a-entity light="type: directional; intensity: 1.0" position="1 3 2"></a-entity>
 
-          <!-- ここに3Dモデルを表示します。位置・大きさ・向きは js/dinosaurs.js と collection-page.js で設定します。 -->
-          <!-- 自動回転はしません。指で左右にフリックしたときだけ、Y軸方向に回転します。 -->
-          <a-entity id="modal-model" position="0 -0.35 -3" scale="2 2 2" rotation="0 0 0"></a-entity>
+          <a-entity id="modal-model" position="0 -0.35 -3" scale="2 2 2" rotation="0 0 0" animation-mixer></a-entity>
 
-          <!-- 3Dモデルを見るためのカメラです。基本触らなくてOKです。 -->
           <a-entity camera position="0 0 3.4"></a-entity>
         </a-scene>
       </div>
 
-      <!-- モデルの大きさ調整。端末差で小さく見える場合に、ユーザー側で調整できます。 -->
       <div class="model-zoom-controls" aria-label="3Dモデルの大きさ調整">
         <button class="button light" type="button" data-model-zoom="out">− 小さく</button>
         <button class="button light zoom-reset" type="button" data-model-zoom="reset"><span id="model-zoom-label">100%</span></button>
         <button class="button light" type="button" data-model-zoom="in">＋ 大きく</button>
       </div>
 
-      <!-- タイトル、説明、リンクは collection-page.js が選択した恐竜データで書き換えます。 -->
       <h2 id="modal-title">恐竜名</h2>
       <p id="modal-description">説明文</p>
       <div class="actions">
