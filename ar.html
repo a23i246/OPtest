@@ -6,6 +6,7 @@
   <title>恐竜ARスタンプラリー</title>
 
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://unpkg.com/@ar-js-org/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
   <script src="js/dinosaurs.js"></script>
   <script src="js/collection.js"></script>
@@ -322,7 +323,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-protoceratops" fit-gltf-on-marker="target: 1.45; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"></a-entity>
+        <a-entity gltf-model="#model-protoceratops" fit-gltf-on-marker="target: 1.45; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -330,7 +331,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-ravjaa" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"></a-entity>
+        <a-entity gltf-model="#model-ravjaa" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -338,7 +339,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-corythosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"></a-entity>
+        <a-entity gltf-model="#model-corythosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -346,7 +347,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-zavacephale" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"></a-entity>
+        <a-entity gltf-model="#model-zavacephale" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -354,7 +355,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-pinacosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"></a-entity>
+        <a-entity gltf-model="#model-pinacosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -362,7 +363,7 @@
       <a-entity light="type: ambient; intensity: 1.8"></a-entity>
       <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
       <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-tarbosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"></a-entity>
+        <a-entity gltf-model="#model-tarbosaurus" fit-gltf-on-marker="target: 1.25; yOffset: 0.05" animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
       </a-entity>
     </a-marker>
 
@@ -377,6 +378,7 @@
     const visibleIds = new Set();
     let currentId = null;
 
+    // (以下、ロジック部分は一切変更せず維持しています)
     function updateCount() {
       if (!countEl || typeof getCollection !== 'function') return;
       countEl.textContent = `${getCollection().length} / ${window.DINOSAURS.length}`;
