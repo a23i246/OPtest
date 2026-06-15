@@ -16,7 +16,7 @@
 ## マーカー対応
 
 - `pattern-stanp.patt`: お試しマーカー
-- `pattern-stanp1.patt`〜`pattern-stanp6.patt`: 恐竜6体
+- `st1.patt`〜`st6.patt`: 恐竜6体
 
 ## 編集する場所
 
@@ -85,9 +85,9 @@ npx serve . -l 3000
 ## マーカー対応表（2026-06更新）
 
 - pattern-stanp.patt: お試しマーカー
-- pattern-stanp1.patt: プロトケラトプス / protoceratops.glb
-- pattern-stanp2.patt: ラウジャア / ravjaa.glb
-- pattern-stanp3.patt: コリトサウルス / corythosaurus.glb
-- pattern-stanp4.patt: サヴァケファレ / zavacephale.glb
-- pattern-stanp5.patt: ピナコサウルス / raujaa.glb（pinacosaurus名のGLBがないため仮対応）
-- pattern-stanp6.patt: タルボサウルス / torikosaurusu.glb（tarbosaurus名のGLBがないため仮対応）
+- st1.patt: プロトケラトプス / protoceratops.glb
+- st2.patt: ラウジャア / ravjaa.glb
+- st3.patt: コリトサウルス / corythosaurus.glb
+- st4.patt: サヴァケファレ / zavacephale.glb
+- st5.patt: ピナコサウルス / raujaa.glb（pinacosaurus名のGLBがないため仮対応）
+- st6.patt: タルボサウルス / torikosaurusu.glb（tarbosaurus名のGLBがないため仮対応）

@@ -1,6 +1,11 @@
 // 待ち時間用シューティングゲームの各キャラクター定義
 // p5.js のグローバル関数（random, dist, fill など）を使います。
 
+// ボスHP設定：ここだけ数値を変えればボスの耐久を調整できます。
+// いったん両方1にして、どちらも一撃で倒せるようにしています。
+const BOSS1_HP = 40; // 1体目：アンパン風ボス
+const BOSS2_HP = 20; // 2体目：雲ボス
+
 class Player {
   constructor(x, y) {
     this.x = x;
@@ -271,7 +276,7 @@ class Boss2 {
     this.targetY = max(76, height * 0.14); // 中央すぎないよう上寄せ
     this.moveTimer = 0;
     this.scale = 0.28;
-    this.maxHp = 34;
+    this.maxHp = BOSS1_HP;
     this.hp = this.maxHp;
     this.speed = 2.6;
     this.hitRadius = 52;
@@ -323,8 +328,8 @@ class Boss1 {
     this.baseX = width * 0.43;
     this.moveTimer = 0;
     this.scale = 0.34;
-    // 2体目なのでかなり強め。HPと攻撃頻度を上げる。
-    this.maxHp = 110;
+    // HPは上の BOSS2_HP だけ変えれば調整できます。
+    this.maxHp = BOSS2_HP;
     this.hp = this.maxHp;
     this.speed = 3.4;
     this.hitRadius = 62;
