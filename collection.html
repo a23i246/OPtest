@@ -14,11 +14,228 @@
   <script src="js/dinosaurs.js"></script>
   <script src="js/collection.js"></script>
   <script defer src="js/collection-page.js"></script>
+
+  <style>
+    /* コレクションページ用のレイアウト設定 */
+    .collection-hero {
+      text-align: center;
+      padding-bottom: 2rem;
+    }
+    .collection-status {
+      font-size: 1.25rem;
+      margin-top: 0.5rem;
+    }
+    .collection-status strong {
+      color: #ef4444;
+      font-size: 1.75rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding: 16px;
+      max-width: 800px;
+      margin: 0 auto 100px;
+    }
+    @media (min-width: 600px) {
+      .grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+      position: relative;
+    }
+    .card:active {
+      transform: scale(0.97);
+    }
+    .card.locked {
+      background: #f3f4f6;
+      cursor: not-allowed;
+    }
+    .card.locked:active {
+      transform: none;
+    }
+    .card-thumb-wrap {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #f9fafb;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    .card-thumb {
+      width: 90%;
+      height: 90%;
+      object-fit: contain;
+    }
+    .card.locked .card-thumb {
+      filter: grayscale(1) brightness(0.8);
+      opacity: 0.3;
+    }
+    .lock-icon {
+      position: absolute;
+      font-size: 24px;
+      color: #9ca3af;
+    }
+    .card-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #111827;
+      margin: 4px 0 0;
+    }
+    .card.locked .card-name {
+      color: #9ca3af;
+    }
+
+    /* 詳細モーダル（ポップアップ） */
+    dialog.modal {
+      width: calc(100% - 32px);
+      max-width: 500px;
+      border: 0;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      background: #fff;
+      box-sizing: border-box;
+      overflow-y: auto;
+      max-height: 90vh;
+    }
+    dialog.modal::backdrop {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(8px);
+    }
+    .modal-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .close-button {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #f3f4f6;
+      border: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4b5563;
+      z-index: 10;
+    }
+    .modal-model {
+      width: 100%;
+      aspect-ratio: 1.2;
+      background: #f8fafc;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #e2e8f0;
+      touch-action: none; /* スワイプ回転時のスクロール化け防止 */
+    }
+    .model-zoom-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: -4px;
+    }
+    .model-zoom-controls .button {
+      padding: 6px 14px;
+      font-size: 13px;
+    }
+    .zoom-reset {
+      min-width: 64px;
+    }
+    #modal-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #111827;
+      margin: 0;
+    }
+    #modal-desc {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #4b5563;
+      margin: 0;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .modal-actions .button {
+      flex: 1;
+      text-align: center;
+    }
+
+    /* デバッグ・データ全消去 */
+    .danger-zone {
+      text-align: center;
+      margin: 40px 0 60px;
+    }
+    .btn-clear {
+      background: transparent;
+      border: 0;
+      color: #9ca3af;
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* 🛠️ 3Dモデル枠をタッチした時に全画面化するCSS */
+    .modal-model.is-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      border-radius: 0 !important;
+      z-index: 99999 !important;
+      background: transparent !important; /* A-Frameの背景を見せる */
+    }
+
+    /* 全画面モード時は閉じるための（×）ボタンを最前面へ移動 */
+    .modal-model.is-fullscreen ~ [data-close-modal] {
+      z-index: 100000 !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      border-radius: 50% !important;
+      width: 44px !important;
+      height: 44px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    }
+  </style>
 </head>
 <body>
   <main class="page">
     <section class="hero collection-hero">
-      <p class="eyebrow">AR COLLECTION</p>
+      <p class=\"eyebrow\">AR COLLECTION</p>
       <h1>恐竜コレクション図鑑</h1>
       <p>集めた恐竜を確認できます。カードを押すと3Dモデルと説明が開きます。</p>
       <p class="collection-status">現在 <strong id="collection-total">0 / 6</strong> 体</p>
@@ -26,21 +243,26 @@
       <div class="nav">
         <a class="button" href="ar.html">ARカメラに戻る</a>
         <a class="button secondary" href="index.html">トップへ</a>
-        <button class="button light" data-clear-collection>リセット</button>
       </div>
     </section>
 
-    <section class="collection-grid" id="collection-root" aria-live="polite"></section>
+    <div class="grid" id="collection-grid"></div>
+
+    <div class="danger-zone">
+      <button class="btn-clear" type="button" data-clear-collection>スタンプラリーの記録をリセットする</button>
+    </div>
   </main>
 
-  <div class="modal" id="detail-modal" aria-hidden="true">
-    <div class="modal-backdrop" data-close-modal></div>
-
-    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <button class="modal-close" type="button" data-close-modal aria-label="閉じる">×</button>
+  <dialog class="modal" id="detail-modal">
+    <div class="modal-content">
+      <button class="close-button" type="button" data-close-modal aria-label="閉じる">×</button>
 
       <div class="modal-model" id="modal-model-wrap">
         <a-scene embedded renderer="antialias: true; alpha: true; colorManagement: true; exposure: 1.1" vr-mode-ui="enabled: false" loading-screen="enabled: false">
+          
+          <a-sky id="modal-bg-sky" color="#ffffff" visible="false"></a-sky>
+          <a-plane id="modal-bg-grass" position="0 -1.2 -3" rotation="-90 0 0" width="100" height="100" color="#4ade80" visible="false"></a-plane>
+
           <a-entity light="type: ambient; intensity: 1.7"></a-entity>
           <a-entity light="type: directional; intensity: 1.0" position="1 3 2"></a-entity>
 
@@ -57,14 +279,13 @@
       </div>
 
       <h2 id="modal-title">恐竜名</h2>
-      <p id="modal-description">説明文</p>
-      <div class="actions">
-        <a class="button" id="modal-link" href="#" target="_blank" rel="noopener">詳細を見る</a>
-        <button class="button light" type="button" data-close-modal>閉じる</button>
+      <p id="modal-desc">説明文</p>
+
+      <div class="modal-actions">
+        <a class="button" id="modal-wiki" href="" target="_blank" rel="noopener">Wikipediaを見る</a>
+        <button class="button secondary" type="button" data-close-modal>閉じる</button>
       </div>
-      <p class="small">モデル部分を左右にフリックすると、横方向だけ回転できます。</p>
-      <p class="small">3D表示が重い端末では、一覧カードだけで確認してください。</p>
-    </section>
-  </div>
+    </div>
+  </dialog> dialog
 </body>
 </html>
