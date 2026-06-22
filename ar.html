@@ -22,12 +22,12 @@
           const mesh = this.el.getObject3D('mesh');
           if (!mesh || !window.THREE) return;
 
-          // ⭕ 親の a-marker から恐竜のIDを取得し、dinosaurs.js から設定を読み込む
+          // 親の a-marker から恐竜のIDを取得し、dinosaurs.js から設定を読み込む
           const markerEl = this.el.closest('a-marker');
           const dinoId = markerEl ? markerEl.dataset.dinoId : null;
           const dinoData = window.DINOSAURS ? window.DINOSAURS.find(d => d.id === dinoId) : null;
 
-          // ⭕ dinosaurs.js に設定があればそちらを優先、なければデフォルト値を使用
+          // dinosaurs.js に設定があればそちらを優先、なければデフォルト値を使用
           const targetSize = (dinoData && dinoData.arFitTarget !== undefined) ? dinoData.arFitTarget : this.data.target;
           const yOffsetVal = (dinoData && dinoData.arYOffset !== undefined) ? dinoData.arYOffset : this.data.yOffset;
 
@@ -51,12 +51,12 @@
           box.getCenter(center);
 
           const maxSize = Math.max(size.x, size.y, size.z);
-          const scale = maxSize > 0 ? targetSize / maxSize : 1; // ⭕ 変更
+          const scale = maxSize > 0 ? targetSize / maxSize : 1;
 
-          // 🛠️ デバッグ表示用：画面のUIに計算されたscaleを反映
+          // 🛠️ デバッグ表示用：画面のUIに計算された maxSize と scale を反映
           const debugScaleEl = document.getElementById('debug-scale');
           if (debugScaleEl) {
-            debugScaleEl.textContent = `(Scale: ${scale.toFixed(4)})`;
+            debugScaleEl.textContent = `(MaxSize: ${maxSize.toFixed(2)} / Scale: ${scale.toFixed(4)})`;
           }
 
           this.el.object3D.scale.set(scale, scale, scale);
@@ -107,11 +107,9 @@
 
       // 3. 画面の比率とカメラの比率を比較して、隙間ができない最小の拡大サイズを自動計算（object-fit: coverの再現）
       if (screenAspect > videoAspect) {
-        // 横に広いデバイス（タブレットやスマホの横向き）
         videoW = Math.ceil(vw);
         videoH = Math.ceil(vw / videoAspect);
       } else {
-        // 縦に長いデバイス（最新の超縦長スマホなど）
         videoH = Math.ceil(vh);
         videoW = Math.ceil(vh * videoAspect);
       }
@@ -125,18 +123,18 @@
       videos.forEach((video) => {
         video.style.setProperty('position', 'fixed', 'important');
         video.style.setProperty('left', '50%', 'important');
-        video.style.setProperty('top', '50%', 'important'); // 👈 上下左右の中央に配置
+        video.style.setProperty('top', '50%', 'important');
         video.style.setProperty('right', 'auto', 'important');
         video.style.setProperty('bottom', 'auto', 'important');
         video.style.setProperty('width', `${videoW}px`, 'important');
-        video.style.setProperty('height', `${videoH}px`, 'important'); // 👈 画面のvhではなく、アスペクト比を維持した計算値にする
+        video.style.setProperty('height', `${videoH}px`, 'important');
         video.style.setProperty('min-width', `${videoW}px`, 'important');
         video.style.setProperty('min-height', `${videoH}px`, 'important');
         video.style.setProperty('max-width', 'none', 'important');
         video.style.setProperty('max-height', 'none', 'important');
         video.style.setProperty('object-fit', 'cover', 'important');
         video.style.setProperty('object-position', 'center center', 'important');
-        video.style.setProperty('transform', 'translate(-50%, -50%)', 'important'); // 👈 上下左右の中央寄せ
+        video.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
         video.style.setProperty('z-index', '0', 'important');
       });
 
@@ -277,25 +275,24 @@
       z-index: 1 !important;
     }
 
-    /* ⭕ 変更後のCSS */
     body > video,
     video#arjs-video,
     video.arjs-video,
     .arjs-video {
       position: fixed !important;
       left: 50% !important;
-      top: 50% !important; /* 👈 top: 0 から 50% に変更 */
+      top: 50% !important;
       right: auto !important;
       bottom: auto !important;
       width: var(--camera-vw, 100vw) !important;
-      height: var(--camera-vh, 100dvh) !important; /* 👈 新しい計算変数に対応 */
+      height: var(--camera-vh, 100dvh) !important;
       min-width: var(--camera-vw, 100vw) !important;
-      min-height: var(--camera-vh, 100dvh) !important; /* 👈 新しい計算変数に対応 */
+      min-height: var(--camera-vh, 100dvh) !important;
       max-width: none !important;
       max-height: none !important;
       object-fit: cover !important;
       object-position: center center !important;
-      transform: translate(-50%, -50%) !important; /* 👈 上下左右の中央寄せに修正 */
+      transform: translate(-50%, -50%) !important;
       transform-origin: center center !important;
       background: #000 !important;
       z-index: 0 !important;
@@ -325,7 +322,7 @@
     <div class="title">
       <span>ARカメラ</span>
       <span id="current-model-name">待機中</span>
-      <span id="debug-scale" style="font-size: 12px; color: #a8a29e; font-weight: normal; margin-left: auto;">(Scale: --)</span>
+      <span id="debug-scale" style="font-size: 11px; color: #a8a29e; font-weight: normal; margin-left: auto;">(MaxSize: -- / Scale: --)</span>
     </div>
     <div id="status">マーカーを探しています。マーカー全体が画面に入るようにしてください。</div>
     <div class="actions">
@@ -504,15 +501,13 @@
     function setCurrent(id) {
       currentId = id;
       const dino = id && typeof findDinosaur === 'function' ? findDinosaur(id) : null;
-      
-      const debugScaleEl = document.getElementById('debug-scale'); // 🛠️ エレメントを取得
-
       if (!dino) {
         if (nameEl) nameEl.textContent = '待機中';
         if (statusEl) statusEl.textContent = 'マーカーを探しています。マーカー全体が画面に入るようにしてください。';
         
-        // マーカーをロストした時はデバッグ表示もクリアする
-        if (debugScaleEl) debugScaleEl.textContent = '(Scale: --)';
+        // 🛠️ マーカーを完全にロストした（画面内に何も無くなった）時だけ表示をクリア
+        const debugScaleEl = document.getElementById('debug-scale');
+        if (debugScaleEl) debugScaleEl.textContent = '(MaxSize: -- / Scale: --)';
 
         if (addButton) {
           addButton.disabled = true;
@@ -524,12 +519,8 @@
       if (nameEl) nameEl.textContent = dino.name;
       if (statusEl) statusEl.textContent = `${dino.name} を認識しました。3Dモデルが見えるか確認してください。`;
       
-      // 🛠️ 【追加】恐竜データから arFitTarget を読み込んで、簡易的にスケールを計算して即時表示する
-      // (※モデルロード完了時はコンポーネント側で厳密に再計算されますが、認知した瞬間もこれを表示させます)
-      if (debugScaleEl && dino.arFitTarget !== undefined) {
-        debugScaleEl.textContent = `(Target: ${dino.arFitTarget})`; 
-        // 実際の正確な scale 値を常に表示したい場合は、次の「コンポーネント側でグローバル変数に退避する」技が確実です。
-      }
+      // 💡 認識が連続してFoundになった際、計算された数値を勝手に消さないよう
+      // ここでの (Scale: --) への強制上書き処理は排除しました。
 
       if (addButton) {
         addButton.disabled = false;
