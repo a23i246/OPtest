@@ -211,7 +211,7 @@ function zoomModalModel(type) {
 }
 
 // =========================================================
-// 🛠️ 修正：フリーズ原因のPointerCaptureを除去した安全な回転＆全画面ロジック
+// 🛠️ 完全修正：大暴走を完全に防ぐ、安全・最軽量のインタラクション
 // =========================================================
 function setupModelInteraction() {
   const wrap = document.getElementById('modal-model-wrap');
@@ -227,42 +227,47 @@ function setupModelInteraction() {
   let lastX = 0;
   let hasMoved = false;
 
-  // 1. タッチ開始（フリーズの原因となる setPointerCapture は完全削除しました）
+  // 1. タッチ開始
   wrap.addEventListener('pointerdown', (event) => {
+    // 詳細画面を開いていない（恐竜が選択されていない）時は何もしないガード
+    if (!currentDetailDino) return;
+
     isDragging = true;
     startX = event.clientX;
     lastX = event.clientX;
     hasMoved = false;
   });
 
-  // 2. 指の移動（回転処理）
+  // 2. 指の移動（ドラッグ回転）
   wrap.addEventListener('pointermove', (event) => {
-    if (!isDragging) return;
+    // ドラッグ中でない、または詳細画面がまだ無い時は、即時処理を終了（暴走ストッパー）
+    if (!isDragging || !currentDetailDino) return;
 
     const diffX = event.clientX - lastX;
     
-    // 5ピクセル以上の移動があればスワイプ（回転操作）とみなす
+    // 5ピクセル以上のハッキリした移動なら回転と見なす
     if (Math.abs(event.clientX - startX) > 5) {
       hasMoved = true;
     }
 
     lastX = event.clientX;
 
-    // 恐竜モデルを回転
+    // 恐竜を回転
     modalModelRotationY += diffX * 0.45;
     model.setAttribute('rotation', `0 ${modalModelRotationY} 0`);
   });
 
-  // 3. タッチ終了（ここでタップ判定を行い全画面化する）
+  // 3. タッチ終了（ここで全画面化を判定）
   function stopDrag(event) {
     if (!isDragging) return;
     isDragging = false;
 
-    // 💡 指がほとんど動いていなければ「タップ（触っただけ）」と判定
+    if (!currentDetailDino) return;
+
+    // 指が動いておらず、かつまだ全画面化していないなら、タップとして全画面＆草原化
     if (!hasMoved && !wrap.classList.contains('is-fullscreen')) {
       wrap.classList.add('is-fullscreen');
       
-      // 背景（青空と緑の草原）を出現させる
       if (sky) {
         sky.setAttribute('color', '#67e8f9'); // 青空
         sky.setAttribute('visible', 'true');
@@ -271,14 +276,12 @@ function setupModelInteraction() {
         grass.setAttribute('visible', 'true');
       }
 
-      // A-Frameにリサイズを通知
       setTimeout(() => {
         if (sceneEl && sceneEl.resize) sceneEl.resize();
       }, 50);
     }
   }
 
-  // 安全にイベントを解除するための登録
   wrap.addEventListener('pointerup', stopDrag);
   wrap.addEventListener('pointercancel', stopDrag);
   wrap.addEventListener('pointerleave', stopDrag);
@@ -293,7 +296,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('click', (event) => {
     const detailButton = event.target.closest('[data-detail]');
-    if (detailButton && !detailButton.disabled) openDetail(detailButton.dataset.detail);
+    if (detailButton && !detailButton.disabled) {
+      openDetail(detailButton.dataset.detail);
+      return; // 処理の連続発火を防ぐ
+    }
 
     const zoomButton = event.target.closest('[data-model-zoom]');
     if (zoomButton) {
