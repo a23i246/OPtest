@@ -1,8 +1,7 @@
 // collection.html 専用の処理です。
-// 役割：コレクション一覧を表示する、カード詳細を開く、3Dモデルを横回転させる、拡大縮小する、リセットする。
 
 // =========================================================
-// 3Dモデルの横回転・拡大縮小用の状態管理
+// 状態管理
 // =========================================================
 let modalModelRotationY = 0;
 let modalModelZoom = 1;
@@ -10,7 +9,7 @@ let modalModelBaseTarget = 2.2;
 let currentDetailDino = null;
 
 // =========================================================
-// コレクション詳細用：GLBを自動で中央寄せ＋見える大きさにするコンポーネント
+// GLBを自動で中央寄せ＋見える大きさにするコンポーネント
 // =========================================================
 if (window.AFRAME && !AFRAME.components['fit-gltf-in-collection']) {
   AFRAME.registerComponent('fit-gltf-in-collection', {
@@ -61,7 +60,7 @@ if (window.AFRAME && !AFRAME.components['fit-gltf-in-collection']) {
 }
 
 // =========================================================
-// 画面描画：コレクション一覧の生成
+// コレクション一覧の生成
 // =========================================================
 function renderCollection() {
   const grid = document.getElementById('collection-grid');
@@ -113,7 +112,7 @@ function renderCollection() {
 }
 
 // =========================================================
-// 詳細表示モーダルを開く
+// 詳細モーダルを開く（フリーズしないカスタムオーバーレイに変更）
 // =========================================================
 function openDetail(id) {
   const dino = window.DINOSAURS ? window.DINOSAURS.find(d => d.id === id) : null;
@@ -155,13 +154,13 @@ function openDetail(id) {
 
   const modal = document.getElementById('detail-modal');
   if (modal) {
-    modal.showModal();
+    modal.classList.add('is-active'); // showModal() の代わり
     document.body.style.overflow = 'hidden';
   }
 }
 
 // =========================================================
-// 詳細表示モーダルを閉じる
+// 詳細モーダルを閉じる
 // =========================================================
 function closeDetail() {
   const wrap = document.getElementById('modal-model-wrap');
@@ -180,13 +179,15 @@ function closeDetail() {
   }
 
   const modal = document.getElementById('detail-modal');
-  if (modal) modal.close();
+  if (modal) {
+    modal.classList.remove('is-active');
+  }
   document.body.style.overflow = '';
   currentDetailDino = null;
 }
 
 // =========================================================
-// 3Dモデルの拡大縮小ボタンの処理
+// 3Dモデルの拡大縮小
 // =========================================================
 function zoomModalModel(type) {
   if (!currentDetailDino) return;
@@ -211,60 +212,62 @@ function zoomModalModel(type) {
 }
 
 // =========================================================
-// 🛠️ 完全修正：大暴走を完全に防ぐ、安全・最軽量のインタラクション
+// 💡 フリーズを完全に防ぐ、透明レイヤーを通した安全な操作
 // =========================================================
 function setupModelInteraction() {
   const wrap = document.getElementById('modal-model-wrap');
+  const touchLayer = document.getElementById('touch-layer'); // 操作を受け止める安全な透明シート
   const model = document.getElementById('modal-model');
   const sky = document.getElementById('modal-bg-sky');
   const grass = document.getElementById('modal-bg-grass');
   const sceneEl = wrap ? wrap.querySelector('a-scene') : null;
 
-  if (!wrap || !model) return;
+  if (!wrap || !touchLayer || !model) return;
 
   let isDragging = false;
   let startX = 0;
   let lastX = 0;
   let hasMoved = false;
 
-  // 1. タッチ開始
-  wrap.addEventListener('pointerdown', (event) => {
-    // 詳細画面を開いていない（恐竜が選択されていない）時は何もしないガード
+  // A-Frameの画面ではなく、その上の透明シートに触れた時の処理
+  touchLayer.addEventListener('pointerdown', (event) => {
     if (!currentDetailDino) return;
-
     isDragging = true;
     startX = event.clientX;
     lastX = event.clientX;
     hasMoved = false;
+    
+    // タッチ用シートにだけイベントを縛り付ける（A-Frameは干渉しないため安全）
+    if (touchLayer.setPointerCapture) {
+      touchLayer.setPointerCapture(event.pointerId);
+    }
   });
 
-  // 2. 指の移動（ドラッグ回転）
-  wrap.addEventListener('pointermove', (event) => {
-    // ドラッグ中でない、または詳細画面がまだ無い時は、即時処理を終了（暴走ストッパー）
+  touchLayer.addEventListener('pointermove', (event) => {
     if (!isDragging || !currentDetailDino) return;
 
     const diffX = event.clientX - lastX;
-    
-    // 5ピクセル以上のハッキリした移動なら回転と見なす
     if (Math.abs(event.clientX - startX) > 5) {
       hasMoved = true;
     }
-
     lastX = event.clientX;
 
-    // 恐竜を回転
+    // 指の動きに合わせてモデルを回転
     modalModelRotationY += diffX * 0.45;
     model.setAttribute('rotation', `0 ${modalModelRotationY} 0`);
   });
 
-  // 3. タッチ終了（ここで全画面化を判定）
   function stopDrag(event) {
     if (!isDragging) return;
     isDragging = false;
+    
+    if (touchLayer.releasePointerCapture && event.pointerId !== undefined) {
+      try { touchLayer.releasePointerCapture(event.pointerId); } catch(e) {}
+    }
 
     if (!currentDetailDino) return;
 
-    // 指が動いておらず、かつまだ全画面化していないなら、タップとして全画面＆草原化
+    // 指が動いていなければ「タップした」とみなして全画面化！
     if (!hasMoved && !wrap.classList.contains('is-fullscreen')) {
       wrap.classList.add('is-fullscreen');
       
@@ -282,9 +285,9 @@ function setupModelInteraction() {
     }
   }
 
-  wrap.addEventListener('pointerup', stopDrag);
-  wrap.addEventListener('pointercancel', stopDrag);
-  wrap.addEventListener('pointerleave', stopDrag);
+  touchLayer.addEventListener('pointerup', stopDrag);
+  touchLayer.addEventListener('pointercancel', stopDrag);
+  touchLayer.addEventListener('pointerleave', stopDrag);
 }
 
 // =========================================================
@@ -298,7 +301,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const detailButton = event.target.closest('[data-detail]');
     if (detailButton && !detailButton.disabled) {
       openDetail(detailButton.dataset.detail);
-      return; // 処理の連続発火を防ぐ
+      return;
     }
 
     const zoomButton = event.target.closest('[data-model-zoom]');
