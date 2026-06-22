@@ -4,7 +4,7 @@
 // ボスHP設定：ここだけ数値を変えればボスの耐久を調整できます。
 // いったん両方1にして、どちらも一撃で倒せるようにしています。
 const BOSS1_HP = 40; // 1体目：アンパン風ボス
-const BOSS2_HP = 20; // 2体目：雲ボス
+const BOSS2_HP = 30; // 2体目：雲ボス
 
 class Player {
   constructor(x, y) {

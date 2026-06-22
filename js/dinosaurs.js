@@ -21,7 +21,7 @@ window.DINOSAURS = [
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
     arFitTarget: 1.45,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.05     // ⭕ AR画面での上下位置
+    arYOffset: 0     // ⭕ AR画面での上下位置
   },
   {
     id: 'ravjaa',
@@ -31,13 +31,12 @@ window.DINOSAURS = [
     model: 'assets/models/ravjaa.glb',
     url: 'https://www.ous.ac.jp/common/files//202504071232270270933.pdf',
     description: 'ラウジャアがARマーカーから飛び出して、君のコレクションに加わりました。指で回して姿を確認してみましょう。',
-    // 💡【修正】元々は2.45で大きすぎたため、自動フィットの目標サイズを 1.35 に縮小しました。
-    collectionFitTarget: 1.35,
+    collectionFitTarget: 2.45,
     collectionDistance: 3.1,
     collectionYOffset: 0.06,
     collectionRotation: '0 0 0',
-    arFitTarget: 1.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.05     // ⭕ AR画面での上下位置
+    arFitTarget: 20,  // ⭕ AR画面での3Dモデルの大きさ
+    arYOffset: -4     // ⭕ AR画面での上下位置
   },
   {
     id: 'corythosaurus',
@@ -47,12 +46,12 @@ window.DINOSAURS = [
     model: 'assets/models/corythosaurus.glb',
     url: 'https://www.ous.ac.jp/common/files//202210281320210885382.pdf',
     description: 'コリトサウルスがARマーカーから飛び出して、君のコレクションに加わりました。頭の大きなトサカが特徴的です。',
-    collectionFitTarget: 2.45, // 👈 これが基準の大きさです
+    collectionFitTarget: 2.45,
     collectionDistance: 3.1,
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
-    arFitTarget: 5.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.05     // ⭕ AR画面での上下位置
+    arFitTarget: 20,  // ⭕ AR画面での3Dモデルの大きさ
+    arYOffset: -4     // ⭕ AR画面での上下位置
   },
   {
     id: 'zavacephale',
@@ -62,28 +61,29 @@ window.DINOSAURS = [
     model: 'assets/models/zavacephale.glb',
     url: 'https://blob-storage.f-portal.pref.fukushima.lg.jp/common-article/68d64086d6595221ff0b346d/20250918+%E6%9C%80%E5%8F%A4%E3%81%AE%E9%A0%AD%E7%AA%81%E3%81%8D%E6%81%90%E7%AB%9C%E5%8C%96%E7%9F%B3%E3%82%92%E6%96%B0%E5%B1%9E%E6%96%B0%E7%A8%AE%E3%80%8C%E3%82%B6%E3%83%B4%E3%82%A1%E3%82%B1%E3%83%95%E3%82%A1%E3%83%AC%E3%83%BB%E3%83%AA%E3%83%B3%E3%83%9D%E3%83%81%E3%82%A7%E3%80%8D%E3%82%92%E7%99%BA%E8%A6%8B+HP%E7%94%A8+%281%29-cleaned%281%29.pdf',
     description: 'サヴァケファレがARマーカーから飛び出して、君のコレクションに加わりました。丸みのある頭部に注目してみましょう。',
-    // 💡【修正】元々は1.35かつカメラや配置が遠く小さすぎたため、コリトサウルスと同じ標準値に戻しました。
-    collectionFitTarget: 2.45,
-    collectionDistance: 3.1,
-    collectionYOffset: 0.04,
+    collectionFitTarget: 1.35,
+    collectionDistance: 5.4,
+    collectionYOffset: 0.12,
+    collectionCameraZ: 4.8,
     collectionRotation: '0 0 0',
-    arFitTarget: 1.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.05     // ⭕ AR画面での上下位置
+    arFitTarget: 10,  // ⭕ AR画面での3Dモデルの大きさ
+    arYOffset: 0     // ⭕ AR画面での上下位置
   },
   {
     id: 'pinacosaurus',
     name: 'ピナコサウルス',
     marker: 'assets/markers/st5.patt',
     markerImage: 'assets/images/st5.png',
-    model: 'assets/models/raujaa.glb',
+    model: 'assets/models/pinacosaurus.glb',
     url: '',
     description: 'ピナコサウルスがARマーカーから飛び出して、君のコレクションに加わりました。※現在のファイル内にpinacosaurus名のGLBがないため、近い候補としてraujaa.glbを割り当てています。',
     collectionFitTarget: 2.45,
     collectionDistance: 3.1,
     collectionYOffset: 0.06,
     collectionRotation: '0 0 0',
-    arFitTarget: 1.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.05     // ⭕ AR画面での上下位置
+    arFitTarget: 10,  // ⭕ AR画面での3Dモデルの大きさ
+    //arFitTarget: 1.25,  // ⭕ AR画面での3Dモデルの大きさ
+    arYOffset: 0.02     // ⭕ AR画面での上下位置
   },
   {
     id: 'tarbosaurus',
@@ -97,13 +97,13 @@ window.DINOSAURS = [
     collectionDistance: 3.1,
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
-    arFitTarget: 1.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.05     // ⭕ AR画面での上下位置
+    arFitTarget: 0.25,  // ⭕ AR画面での3Dモデルの大きさ
+    arYOffset: -3     // ⭕ AR画面での上下位置
   }
 ];
 
 window.TRIAL_MARKER = {
   name: 'お試しマーカー',
-  marker: 'assets/markers/pattern-stanp.patt',
-  markerImage: 'assets/images/pattern-stanp.png'
+  marker: 'assets/markers/st.patt',
+  markerImage: 'assets/images/st.png'
 };

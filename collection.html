@@ -14,30 +14,6 @@
   <script src="js/dinosaurs.js"></script>
   <script src="js/collection.js"></script>
   <script defer src="js/collection-page.js"></script>
-
-  <style>
-    /* モーダルの外枠が画面からはみ出さないように制御 */
-    .modal-card {
-      max-height: 95vh !important;
-      display: flex !important;
-      flex-direction: column !important;
-      overflow-y: auto; /* 万が一、縦幅が足りない場合はスクロール可能に */
-    }
-
-    /* 3Dモデルの表示枠を画面の高さの55%（5割超）に固定 */
-    #modal-model-wrap {
-      height: 55vh !important; 
-      width: 100% !important;
-      min-height: 320px; /* 極端に画面が低い端末でも崩れないように最小値を設定 */
-      position: relative;
-    }
-
-    /* A-Frameの表示領域が親要素（55vh）いっぱいに広がるように保証 */
-    #modal-model-wrap a-scene {
-      width: 100% !important;
-      height: 100% !important;
-    }
-  </style>
 </head>
 <body>
   <main class="page">

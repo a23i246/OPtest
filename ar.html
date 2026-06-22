@@ -41,6 +41,7 @@
 
           this.el.object3D.scale.set(1, 1, 1);
           this.el.object3D.position.set(0, 0, 0);
+          mesh.position.set(0, 0, 0);
           this.el.object3D.updateMatrixWorld(true);
 
           const box = new THREE.Box3().setFromObject(mesh);
@@ -53,10 +54,11 @@
           const scale = maxSize > 0 ? targetSize / maxSize : 1; // ⭕ 変更
 
           this.el.object3D.scale.set(scale, scale, scale);
-          this.el.object3D.position.set(
-            -center.x * scale,
-            -box.min.y * scale + yOffsetVal, // ⭕ 変更
-            -center.z * scale
+          this.el.object3D.position.set(0, 0, 0);
+          mesh.position.set(
+            -center.x,
+            -box.min.y + (yOffsetVal / scale),
+            -center.z
           );
           this.el.object3D.updateMatrixWorld(true);
         });
@@ -83,29 +85,52 @@
       const videos = document.querySelectorAll('video, #arjs-video, .arjs-video');
       const canvases = document.querySelectorAll('a-scene canvas, canvas.a-canvas, .a-canvas');
       const viewport = window.visualViewport || window;
-      const vw = Math.ceil(viewport.width || window.innerWidth);
-      const vh = Math.ceil(viewport.height || window.innerHeight);
-      const videoW = Math.ceil(vw * 1.18);
+      const vw = viewport.width || window.innerWidth;
+      const vh = viewport.height || window.innerHeight;
 
+      // 1. AR.jsが設定しているカメラ映像の本来の比率（今回は 1280x720 = 16:9）
+      let videoAspect = 16 / 9; 
+      if (videos.length > 0 && videos[0].videoWidth && videos[0].videoHeight) {
+        videoAspect = videos[0].videoWidth / videos[0].videoHeight;
+      }
+      
+      // 2. 現在のスマートフォンの画面の比率
+      const screenAspect = vw / vh;
+
+      let videoW, videoH;
+
+      // 3. 画面の比率とカメラの比率を比較して、隙間ができない最小の拡大サイズを自動計算（object-fit: coverの再現）
+      if (screenAspect > videoAspect) {
+        // 横に広いデバイス（タブレットやスマホの横向き）
+        videoW = Math.ceil(vw);
+        videoH = Math.ceil(vw / videoAspect);
+      } else {
+        // 縦に長いデバイス（最新の超縦長スマホなど）
+        videoH = Math.ceil(vh);
+        videoW = Math.ceil(vh * videoAspect);
+      }
+
+      // CSS変数に正確な計算値をセット
       document.documentElement.style.setProperty('--real-vw', `${vw}px`);
       document.documentElement.style.setProperty('--real-vh', `${vh}px`);
       document.documentElement.style.setProperty('--camera-vw', `${videoW}px`);
+      document.documentElement.style.setProperty('--camera-vh', `${videoH}px`);
 
       videos.forEach((video) => {
         video.style.setProperty('position', 'fixed', 'important');
         video.style.setProperty('left', '50%', 'important');
-        video.style.setProperty('top', '0px', 'important');
+        video.style.setProperty('top', '50%', 'important'); // 👈 上下左右の中央に配置
         video.style.setProperty('right', 'auto', 'important');
         video.style.setProperty('bottom', 'auto', 'important');
         video.style.setProperty('width', `${videoW}px`, 'important');
-        video.style.setProperty('height', `${vh}px`, 'important');
+        video.style.setProperty('height', `${videoH}px`, 'important'); // 👈 画面のvhではなく、アスペクト比を維持した計算値にする
         video.style.setProperty('min-width', `${videoW}px`, 'important');
-        video.style.setProperty('min-height', `${vh}px`, 'important');
+        video.style.setProperty('min-height', `${videoH}px`, 'important');
         video.style.setProperty('max-width', 'none', 'important');
         video.style.setProperty('max-height', 'none', 'important');
         video.style.setProperty('object-fit', 'cover', 'important');
         video.style.setProperty('object-position', 'center center', 'important');
-        video.style.setProperty('transform', 'translateX(-50%)', 'important');
+        video.style.setProperty('transform', 'translate(-50%, -50%)', 'important'); // 👈 上下左右の中央寄せ
         video.style.setProperty('z-index', '0', 'important');
       });
 
@@ -245,24 +270,25 @@
       z-index: 1 !important;
     }
 
+    /* ⭕ 変更後のCSS */
     body > video,
     video#arjs-video,
     video.arjs-video,
     .arjs-video {
       position: fixed !important;
       left: 50% !important;
-      top: 0 !important;
+      top: 50% !important; /* 👈 top: 0 から 50% に変更 */
       right: auto !important;
       bottom: auto !important;
-      width: var(--camera-vw, 118vw) !important;
-      height: var(--real-vh, 100dvh) !important;
-      min-width: var(--camera-vw, 118vw) !important;
-      min-height: var(--real-vh, 100dvh) !important;
+      width: var(--camera-vw, 100vw) !important;
+      height: var(--camera-vh, 100dvh) !important; /* 👈 新しい計算変数に対応 */
+      min-width: var(--camera-vw, 100vw) !important;
+      min-height: var(--camera-vh, 100dvh) !important; /* 👈 新しい計算変数に対応 */
       max-width: none !important;
       max-height: none !important;
       object-fit: cover !important;
       object-position: center center !important;
-      transform: translateX(-50%) !important;
+      transform: translate(-50%, -50%) !important; /* 👈 上下左右の中央寄せに修正 */
       transform-origin: center center !important;
       background: #000 !important;
       z-index: 0 !important;
@@ -308,64 +334,148 @@
     device-orientation-permission-ui="enabled: false"
     renderer="logarithmicDepthBuffer: true; antialias: true; alpha: true; colorManagement: true"
     gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
-    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; trackingMethod: best;">
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; trackingMethod: best; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;">
 
     <a-assets timeout="60000">
       <a-asset-item id="model-protoceratops" src="assets/models/protoceratops.glb"></a-asset-item>
       <a-asset-item id="model-ravjaa" src="assets/models/ravjaa.glb"></a-asset-item>
       <a-asset-item id="model-corythosaurus" src="assets/models/corythosaurus.glb"></a-asset-item>
       <a-asset-item id="model-zavacephale" src="assets/models/zavacephale.glb"></a-asset-item>
-      <a-asset-item id="model-pinacosaurus" src="assets/models/raujaa.glb"></a-asset-item>
+      <a-asset-item id="model-pinacosaurus" src="assets/models/pinacosaurus.glb"></a-asset-item>
       <a-asset-item id="model-tarbosaurus" src="assets/models/torikosaurusu.glb"></a-asset-item>
     </a-assets>
 
-    <a-marker id="marker-protoceratops" data-dino-id="protoceratops" type="pattern" url="assets/markers/st1.patt" emitevents="true">
-      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-      <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-protoceratops" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
-      </a-entity>
-    </a-marker>
+      <a-marker
+        id="marker-protoceratops"
+        data-dino-id="protoceratops"
+        type="pattern"
+        url="assets/markers/st1.patt"
+        emitevents="true"
+        smooth="true"
+        smoothCount="8"
+        smoothTolerance="0.01"
+        smoothThreshold="3">
+        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+        <a-entity position="0 0 0" rotation="0 180 0">
+          <a-entity
+            gltf-model="#model-protoceratops"
+            fit-gltf-on-marker
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
+            animation-mixer>
+          </a-entity>
+        </a-entity>
+      </a-marker>
 
-    <a-marker id="marker-ravjaa" data-dino-id="ravjaa" type="pattern" url="assets/markers/st2.patt" emitevents="true">
-      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-      <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-ravjaa" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
-      </a-entity>
-    </a-marker>
+      <a-marker
+        id="marker-ravjaa"
+        data-dino-id="ravjaa"
+        type="pattern"
+        url="assets/markers/st2.patt"
+        emitevents="true"
+        smooth="true"
+        smoothCount="8"
+        smoothTolerance="0.01"
+        smoothThreshold="3">
+        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+        <a-entity position="0 0 0" rotation="0 180 0">
+          <a-entity
+            gltf-model="#model-ravjaa"
+            fit-gltf-on-marker
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
+            animation-mixer>
+          </a-entity>
+        </a-entity>
+      </a-marker>
 
-    <a-marker id="marker-corythosaurus" data-dino-id="corythosaurus" type="pattern" url="assets/markers/st3.patt" emitevents="true">
-      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-      <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-corythosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
-      </a-entity>
-    </a-marker>
+      <a-marker
+        id="marker-corythosaurus"
+        data-dino-id="corythosaurus"
+        type="pattern"
+        url="assets/markers/st3.patt"
+        emitevents="true"
+        smooth="true"
+        smoothCount="8"
+        smoothTolerance="0.01"
+        smoothThreshold="3">
+        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+        <a-entity position="0 0 0" rotation="0 180 0">
+          <a-entity
+            gltf-model="#model-corythosaurus"
+            fit-gltf-on-marker
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
+            animation-mixer>
+          </a-entity>
+        </a-entity>
+      </a-marker>
 
-    <a-marker id="marker-zavacephale" data-dino-id="zavacephale" type="pattern" url="assets/markers/st4.patt" emitevents="true">
-      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-      <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-zavacephale" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
-      </a-entity>
-    </a-marker>
+      <a-marker
+        id="marker-zavacephale"
+        data-dino-id="zavacephale"
+        type="pattern"
+        url="assets/markers/st4.patt"
+        emitevents="true"
+        smooth="true"
+        smoothCount="8"
+        smoothTolerance="0.01"
+        smoothThreshold="3">
+        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+        <a-entity position="0 0 0" rotation="0 180 0">
+          <a-entity
+            gltf-model="#model-zavacephale"
+            fit-gltf-on-marker
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
+            animation-mixer>
+          </a-entity>
+        </a-entity>
+      </a-marker>
 
-    <a-marker id="marker-pinacosaurus" data-dino-id="pinacosaurus" type="pattern" url="assets/markers/st5.patt" emitevents="true">
-      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-      <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-pinacosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
-      </a-entity>
-    </a-marker>
+      <a-marker
+        id="marker-pinacosaurus"
+        data-dino-id="pinacosaurus"
+        type="pattern"
+        url="assets/markers/st5.patt"
+        emitevents="true"
+        smooth="true"
+        smoothCount="8"
+        smoothTolerance="0.01"
+        smoothThreshold="3">
+        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+        <a-entity position="0 0 0" rotation="0 180 0">
+          <a-entity
+            gltf-model="#model-pinacosaurus"
+            fit-gltf-on-marker
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
+            animation-mixer>
+          </a-entity>
+        </a-entity>
+      </a-marker>
 
-    <a-marker id="marker-tarbosaurus" data-dino-id="tarbosaurus" type="pattern" url="assets/markers/st6.patt" emitevents="true">
-      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-      <a-entity position="0 0.02 0" rotation="0 180 0">
-        <a-entity gltf-model="#model-tarbosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
-      </a-entity>
-    </a-marker>
+      <a-marker
+        id="marker-tarbosaurus"
+        data-dino-id="tarbosaurus"
+        type="pattern"
+        url="assets/markers/st6.patt"
+        emitevents="true"
+        smooth="true"
+        smoothCount="8"
+        smoothTolerance="0.01"
+        smoothThreshold="3">
+        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+        <a-entity position="0 0 0" rotation="0 180 0">
+          <a-entity
+            gltf-model="#model-tarbosaurus"
+            fit-gltf-on-marker
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
+            animation-mixer>
+          </a-entity>
+        </a-entity>
+      </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
