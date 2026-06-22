@@ -32,27 +32,22 @@ if (window.AFRAME && !AFRAME.components['fit-gltf-in-collection']) {
       const mesh = this.el.getObject3D('mesh');
       if (!mesh || !window.THREE) return;
 
-      // 位置とスケールを一旦初期化して計測
       this.el.object3D.scale.set(1, 1, 1);
       this.el.object3D.position.set(0, 0, 0);
       mesh.position.set(0, 0, 0);
       this.el.object3D.updateMatrixWorld(true);
 
-      // モデルの正確な境界ボックス（サイズと中心点）を計算
       const box = new THREE.Box3().setFromObject(mesh);
       const size = new THREE.Vector3();
       const center = new THREE.Vector3();
       box.getSize(size);
       box.getCenter(center);
 
-      // 1. スケール計算（一番長い辺を基準に target サイズにフィットさせる）
       const maxSize = Math.max(size.x, size.y, size.z);
       const baseScale = maxSize > 0 ? this.data.target / maxSize : 1;
-      const finalScale = baseScale * this.data.zoom; // ズーム倍率を乗算
+      const finalScale = baseScale * this.data.zoom;
       this.el.object3D.scale.set(finalScale, finalScale, finalScale);
 
-      // 2. 位置計算（カメラの正面奥 distance の位置に配置し、モデル自体の中心ズレを相殺）
-      // Y位置は足元を少し接地させるため box.min.y をベースに yOffset で微調整
       this.el.object3D.position.set(0, 0, -this.data.distance);
       mesh.position.set(
         -center.x,
@@ -161,7 +156,7 @@ function openDetail(id) {
   const modal = document.getElementById('detail-modal');
   if (modal) {
     modal.showModal();
-    document.body.style.overflow = 'hidden'; // 背後のスクロールを固定
+    document.body.style.overflow = 'hidden';
   }
 }
 
@@ -174,10 +169,8 @@ function closeDetail() {
   const grass = document.getElementById('modal-bg-grass');
   const sceneEl = wrap ? wrap.querySelector('a-scene') : null;
 
-  // 🛠️ もし全画面モードになっていたら解除する
   if (wrap && wrap.classList.contains('is-fullscreen')) {
     wrap.classList.remove('is-fullscreen');
-    // 背景を非表示（透明ベース）に戻す
     if (sky) sky.setAttribute('visible', 'false');
     if (grass) grass.setAttribute('visible', 'false');
     
@@ -218,40 +211,80 @@ function zoomModalModel(type) {
 }
 
 // =========================================================
-// 3Dモデルのスワイプ（ポインター）回転処理
+// 🛠️ 修正：競合とフリーズを防ぐ安全な回転＆クリック制御
 // =========================================================
-function setupModelSwipeRotation() {
+function setupModelInteraction() {
   const wrap = document.getElementById('modal-model-wrap');
   const model = document.getElementById('modal-model');
+  const sky = document.getElementById('modal-bg-sky');
+  const grass = document.getElementById('modal-bg-grass');
+  const sceneEl = wrap ? wrap.querySelector('a-scene') : null;
+
   if (!wrap || !model) return;
 
   let isDragging = false;
+  let startX = 0;
   let lastX = 0;
+  let hasMoved = false;
 
+  // 指が触れたとき
   wrap.addEventListener('pointerdown', (event) => {
-    // 🛠️ 全画面時は回転させ、通常枠の時はクリック(全画面化)を優先するため、
-    // ドラッグ開始判定は全画面時、もしくはスワイプの意図が明確な場合のみに寄せる仕様にできます。
     isDragging = true;
+    startX = event.clientX;
     lastX = event.clientX;
-    if (event.pointerId !== undefined) {
-      wrap.setPointerCapture?.(event.pointerId);
+    hasMoved = false;
+    
+    // フリーズ原因になりやすいCaptureは全画面の時のみ限定で安全に適用
+    if (wrap.classList.contains('is-fullscreen') && wrap.setPointerCapture) {
+      wrap.setPointerCapture(event.pointerId);
     }
   });
 
+  // 指が動いているとき
   wrap.addEventListener('pointermove', (event) => {
     if (!isDragging) return;
 
     const diffX = event.clientX - lastX;
+    // 数ピクセル以上の明確な移動があれば「ドラッグ（回転）」とみなす
+    if (Math.abs(event.clientX - startX) > 5) {
+      hasMoved = true;
+    }
+
     lastX = event.clientX;
-    modalModelRotationY += diffX * 0.55;
+
+    // 回転は通常枠でも全画面でもスムーズに動くようにする
+    modalModelRotationY += diffX * 0.45;
     model.setAttribute('rotation', `0 ${modalModelRotationY} 0`);
-    event.preventDefault();
+    
+    if (event.cancelable) {
+      event.preventDefault();
+    }
   });
 
+  // 指が離れたとき（ここでタップ判定かドラッグ終了かを仕分ける）
   function stopDrag(event) {
+    if (!isDragging) return;
     isDragging = false;
-    if (event?.pointerId !== undefined) {
-      wrap.releasePointerCapture?.(event.pointerId);
+
+    if (event && event.pointerId !== undefined && wrap.releasePointerCapture) {
+      try { wrap.releasePointerCapture(event.pointerId); } catch(e) {}
+    }
+
+    // 💡【重要】スワイプ移動（hasMoved）が「無かった」場合のみ、純粋なタップとして全画面化を実行する
+    if (!hasMoved && !wrap.classList.contains('is-fullscreen')) {
+      wrap.classList.add('is-fullscreen');
+      
+      if (sky) {
+        sky.setAttribute('color', '#67e8f9'); // 青空
+        sky.setAttribute('visible', 'true');
+      }
+      if (grass) {
+        grass.setAttribute('visible', 'true');
+      }
+
+      setTimeout(() => {
+        if (sceneEl && sceneEl.resize) sceneEl.resize();
+      }, 60);
     }
   }
 
@@ -261,45 +294,11 @@ function setupModelSwipeRotation() {
 }
 
 // =========================================================
-// 🛠️ 追加：3Dモデルの枠をシングルタップした時の全画面・草原切り替え処理
-// =========================================================
-function setupFullscreenToggle() {
-  const wrap = document.getElementById('modal-model-wrap');
-  const sky = document.getElementById('modal-bg-sky');
-  const grass = document.getElementById('modal-bg-grass');
-  const sceneEl = wrap ? wrap.querySelector('a-scene') : null;
-
-  if (!wrap) return;
-
-  wrap.addEventListener('click', () => {
-    // すでに全画面化されている場合は、タップでの誤操作を防ぐため何もしない（閉じる時は右上の「×」ボタンで行う）
-    if (wrap.classList.contains('is-fullscreen')) return;
-
-    wrap.classList.add('is-fullscreen');
-    
-    // 背景（青空と緑の草原）を表示状態にする
-    if (sky) {
-      sky.setAttribute('color', '#67e8f9'); // 綺麗な水色（青空）
-      sky.setAttribute('visible', 'true');
-    }
-    if (grass) {
-      grass.setAttribute('visible', 'true');
-    }
-
-    // A-Frameに画面サイズが劇的に変わったことを通知（恐竜が横に引き伸ばされるのを防止）
-    setTimeout(() => {
-      if (sceneEl && sceneEl.resize) sceneEl.resize();
-    }, 50);
-  });
-}
-
-// =========================================================
 // 初期起動イベント
 // =========================================================
 window.addEventListener('DOMContentLoaded', () => {
   renderCollection();
-  setupModelSwipeRotation();
-  setupFullscreenToggle(); // 🛠️ 関数呼び出しを追加
+  setupModelInteraction(); // 🛠️ 統合した安全なインタラクション関数を実行
 
   document.addEventListener('click', (event) => {
     const detailButton = event.target.closest('[data-detail]');
