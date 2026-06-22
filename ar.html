@@ -504,12 +504,14 @@
     function setCurrent(id) {
       currentId = id;
       const dino = id && typeof findDinosaur === 'function' ? findDinosaur(id) : null;
+      
+      const debugScaleEl = document.getElementById('debug-scale'); // 🛠️ エレメントを取得
+
       if (!dino) {
         if (nameEl) nameEl.textContent = '待機中';
         if (statusEl) statusEl.textContent = 'マーカーを探しています。マーカー全体が画面に入るようにしてください。';
         
-        // 🛠️ マーカーをロストした時はデバッグ表示もクリアする
-        const debugScaleEl = document.getElementById('debug-scale');
+        // マーカーをロストした時はデバッグ表示もクリアする
         if (debugScaleEl) debugScaleEl.textContent = '(Scale: --)';
 
         if (addButton) {
@@ -521,6 +523,14 @@
 
       if (nameEl) nameEl.textContent = dino.name;
       if (statusEl) statusEl.textContent = `${dino.name} を認識しました。3Dモデルが見えるか確認してください。`;
+      
+      // 🛠️ 【追加】恐竜データから arFitTarget を読み込んで、簡易的にスケールを計算して即時表示する
+      // (※モデルロード完了時はコンポーネント側で厳密に再計算されますが、認知した瞬間もこれを表示させます)
+      if (debugScaleEl && dino.arFitTarget !== undefined) {
+        debugScaleEl.textContent = `(Target: ${dino.arFitTarget})`; 
+        // 実際の正確な scale 値を常に表示したい場合は、次の「コンポーネント側でグローバル変数に退避する」技が確実です。
+      }
+
       if (addButton) {
         addButton.disabled = false;
         const already = getCollection().includes(id);
