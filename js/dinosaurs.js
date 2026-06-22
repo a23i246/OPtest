@@ -6,6 +6,10 @@
 // collectionYOffset   : コレクション詳細画面で上下位置を少しだけ調整します。下に寄る場合は少し上げます。
 // collectionRotation  : コレクション詳細画面を開いた直後の向き。正面がずれる場合はYの数字を調整します。
 // collectionCameraZ   : コレクション詳細画面のカメラ位置。モデルの中に入り込む場合は大きくします。
+// arFitTarget          : ARでfit-gltf-on-markerがモデルを自動フィットさせる基準サイズ。
+// arYOffset            : モデル本体を足元基準で少し上下させる微調整。
+// arControlBaseScale   : AR下部パネルの「サイズ 0.00」のときに使う倍率。
+// arControlBaseYOffset : AR下部パネルの「上下 0.00」のときに使う上下位置。
 
 window.DINOSAURS = [
   {
@@ -21,7 +25,9 @@ window.DINOSAURS = [
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
     arFitTarget: 1.45,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0     // ⭕ AR画面での上下位置
+    arYOffset: 0,    // ⭕ AR画面での上下位置
+    arControlBaseScale: 4.00,      // ⭕ 下部パネルで「サイズ 0.00」と表示する基準倍率
+    arControlBaseYOffset: -0.03    // ⭕ 下部パネルで「上下 0.00」と表示する基準位置
   },
   {
     id: 'ravjaa',
@@ -36,7 +42,9 @@ window.DINOSAURS = [
     collectionYOffset: 0.06,
     collectionRotation: '0 0 0',
     arFitTarget: 20,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: -4     // ⭕ AR画面での上下位置
+    arYOffset: 0,     // ⭕ AR画面での上下位置（足元補正後は大きいマイナス値を使わない）
+    arControlBaseScale: 1.00,
+    arControlBaseYOffset: 0.00
   },
   {
     id: 'corythosaurus',
@@ -51,7 +59,9 @@ window.DINOSAURS = [
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
     arFitTarget: 20,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: -4     // ⭕ AR画面での上下位置
+    arYOffset: 0,     // ⭕ AR画面での上下位置（足元補正後は大きいマイナス値を使わない）
+    arControlBaseScale: 1.00,
+    arControlBaseYOffset: 0.00
   },
   {
     id: 'zavacephale',
@@ -67,7 +77,9 @@ window.DINOSAURS = [
     collectionCameraZ: 4.8,
     collectionRotation: '0 0 0',
     arFitTarget: 10,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0     // ⭕ AR画面での上下位置
+    arYOffset: 0,    // ⭕ AR画面での上下位置
+    arControlBaseScale: 0.20,      // ⭕ 写真で合わせた値。画面ではこれを「サイズ 0.00」として扱う
+    arControlBaseYOffset: -0.07    // ⭕ 写真で合わせた値。画面ではこれを「上下 0.00」として扱う
   },
   {
     id: 'pinacosaurus',
@@ -83,7 +95,9 @@ window.DINOSAURS = [
     collectionRotation: '0 0 0',
     arFitTarget: 10,  // ⭕ AR画面での3Dモデルの大きさ
     //arFitTarget: 1.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.02     // ⭕ AR画面での上下位置
+    arYOffset: 0.02,  // ⭕ AR画面での上下位置
+    arControlBaseScale: 1.00,
+    arControlBaseYOffset: 0.00
   },
   {
     id: 'tarbosaurus',
@@ -97,8 +111,11 @@ window.DINOSAURS = [
     collectionDistance: 3.1,
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
-    arFitTarget: 0.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: -3     // ⭕ AR画面での上下位置
+    // ⭕ タルボサウルス用のGLBは元データの見た目が大きいため、初期値を小さめにしています。
+    arFitTarget: 0.08,  // ⭕ AR画面での3Dモデルの大きさ
+    arYOffset: 0,     // ⭕ AR画面での上下位置（足元補正後は大きいマイナス値を使わない）
+    arControlBaseScale: 0.20,
+    arControlBaseYOffset: -0.03
   }
 ];
 
