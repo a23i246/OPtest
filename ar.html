@@ -53,6 +53,12 @@
           const maxSize = Math.max(size.x, size.y, size.z);
           const scale = maxSize > 0 ? targetSize / maxSize : 1; // ⭕ 変更
 
+          // 🛠️ デバッグ表示用：画面のUIに計算されたscaleを反映
+          const debugScaleEl = document.getElementById('debug-scale');
+          if (debugScaleEl) {
+            debugScaleEl.textContent = `(Scale: ${scale.toFixed(4)})`;
+          }
+
           this.el.object3D.scale.set(scale, scale, scale);
           this.el.object3D.position.set(0, 0, 0);
           mesh.position.set(
@@ -211,7 +217,8 @@
 
     .title {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
+      align-items: center;
       gap: 12px;
       font-weight: 800;
       font-size: 18px;
@@ -318,6 +325,7 @@
     <div class="title">
       <span>ARカメラ</span>
       <span id="current-model-name">待機中</span>
+      <span id="debug-scale" style="font-size: 12px; color: #a8a29e; font-weight: normal; margin-left: auto;">(Scale: --)</span>
     </div>
     <div id="status">マーカーを探しています。マーカー全体が画面に入るようにしてください。</div>
     <div class="actions">
@@ -499,6 +507,11 @@
       if (!dino) {
         if (nameEl) nameEl.textContent = '待機中';
         if (statusEl) statusEl.textContent = 'マーカーを探しています。マーカー全体が画面に入るようにしてください。';
+        
+        // 🛠️ マーカーをロストした時はデバッグ表示もクリアする
+        const debugScaleEl = document.getElementById('debug-scale');
+        if (debugScaleEl) debugScaleEl.textContent = '(Scale: --)';
+
         if (addButton) {
           addButton.disabled = true;
           addButton.textContent = 'コレクションに追加';
