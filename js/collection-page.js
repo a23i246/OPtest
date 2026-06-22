@@ -1,5 +1,5 @@
 // collection.html 専用の処理です。
-// 役割：コレクション一覧を表示する、カード詳細を開く、3Dモデルを横回転させる、拡大縮小する、リセットする。
+// 役割：コレクション一覧を表示する、カード詳細を開く、3Dモデルを横回転させる、拡大縮小する、リセットする、全画面表示する。
 
 // =========================================================
 // 3Dモデルの横回転・拡大縮小用の状態管理
@@ -10,12 +10,26 @@ let modalModelBaseTarget = 2.2;
 let currentDetailDino = null;
 
 // =========================================================
+// 全画面表示の切り替え
+// =========================================================
+function toggleFullscreenModel(enable) {
+  const scene = document.querySelector('#modal-model-wrap a-scene');
+
+  if (enable) {
+    document.body.classList.add('model-fullscreen');
+  } else {
+    document.body.classList.remove('model-fullscreen');
+  }
+
+  // A-Frameのキャンバスサイズをウィンドウサイズに合わせるためにリサイズを発火
+  requestAnimationFrame(() => {
+    setTimeout(() => scene?.resize?.(), 50);
+  });
+}
+
+// =========================================================
 // コレクション詳細用：GLBを自動で中央寄せ＋見える大きさにするコンポーネント
 // =========================================================
-// 前の方式は js/dinosaurs.js の collectionScale / collectionPosition をそのまま使っていました。
-// ただ、GLBごとに原点やサイズが違うため、ラウジャア・ピナコサウルス系が枠外に寄ったり、
-// モデルが下側ギリギリに出ることがありました。
-// ここでは読み込んだGLBの外接ボックスを見て、中心が画面中央に来るように自動補正します。
 if (window.AFRAME && !AFRAME.components['fit-gltf-in-collection']) {
   AFRAME.registerComponent('fit-gltf-in-collection', {
     schema: {
@@ -42,7 +56,6 @@ if (window.AFRAME && !AFRAME.components['fit-gltf-in-collection']) {
       const mesh = this.el.getObject3D('mesh');
       if (!mesh || !window.THREE) return;
 
-      // いったん標準状態に戻してから外接ボックスを取ります。
       this.el.object3D.scale.set(1, 1, 1);
       this.el.object3D.position.set(0, 0, -this.data.distance);
       this.el.object3D.updateMatrixWorld(true);
@@ -59,8 +72,6 @@ if (window.AFRAME && !AFRAME.components['fit-gltf-in-collection']) {
       const target = this.data.target * this.data.zoom;
       const scale = target / maxSize;
 
-      // GLBの中心が画面中央に来るように原点ズレを打ち消します。
-      // zはカメラから少し奥へ置きます。
       this.el.object3D.scale.set(scale, scale, scale);
       this.el.object3D.position.set(
         -center.x * scale,
@@ -163,8 +174,6 @@ function openDetail(id) {
   }
 
   if (camera) {
-    // サヴァケファレのように、モデルの奥行きや原点のクセでカメラが中に入り込む場合があるため、
-    // 恐竜ごとにカメラ位置を変えられるようにしています。基本値は 3.4 です。
     camera.setAttribute('position', `0 0 ${Number(dino.collectionCameraZ) || 3.4}`);
   }
 
@@ -172,7 +181,6 @@ function openDetail(id) {
     model.removeAttribute('gltf-model');
     model.removeAttribute('animation');
 
-    // 初期サイズ。恐竜ごとに collectionFitTarget を指定でき、なければ2.2です。
     modalModelBaseTarget = Number(dino.collectionFitTarget) || 2.2;
     modalModelZoom = 1;
 
@@ -200,6 +208,9 @@ function closeDetail() {
   currentDetailDino = null;
   modalModelZoom = 1;
   updateZoomLabel();
+  
+  // モーダルを閉じる際に全画面も解除する
+  toggleFullscreenModel(false);
 
   if (modal) {
     modal.classList.remove('open');
@@ -214,10 +225,17 @@ function setupModelSwipeRotation() {
 
   let isDragging = false;
   let lastX = 0;
+  let startX = 0;
+  let startY = 0;
 
   wrap.addEventListener('pointerdown', (event) => {
+    // 全画面解除ボタンを押したときは回転処理を開始しない
+    if (event.target.closest('[data-exit-fullscreen]')) return;
+
     isDragging = true;
     lastX = event.clientX;
+    startX = event.clientX;
+    startY = event.clientY;
     wrap.setPointerCapture?.(event.pointerId);
   });
 
@@ -232,9 +250,19 @@ function setupModelSwipeRotation() {
   });
 
   function stopDrag(event) {
+    if (!isDragging) return;
     isDragging = false;
     if (event?.pointerId !== undefined) {
       wrap.releasePointerCapture?.(event.pointerId);
+    }
+
+    // 移動距離が小さければ「タップ」とみなして全画面化する
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      if (!document.body.classList.contains('model-fullscreen')) {
+        toggleFullscreenModel(true);
+      }
     }
   }
 
@@ -248,6 +276,13 @@ window.addEventListener('DOMContentLoaded', () => {
   setupModelSwipeRotation();
 
   document.addEventListener('click', (event) => {
+    // 全画面解除ボタンが押されたとき
+    const exitFullscreenBtn = event.target.closest('[data-exit-fullscreen]');
+    if (exitFullscreenBtn) {
+      toggleFullscreenModel(false);
+      return;
+    }
+
     const detailButton = event.target.closest('[data-detail]');
     if (detailButton && !detailButton.disabled) openDetail(detailButton.dataset.detail);
 

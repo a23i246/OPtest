@@ -40,6 +40,8 @@
       <button class="modal-close" type="button" data-close-modal aria-label="閉じる">×</button>
 
       <div class="modal-model" id="modal-model-wrap">
+        <button class="fullscreen-close" type="button" data-exit-fullscreen aria-label="全画面を閉じる">×</button>
+
         <a-scene embedded renderer="antialias: true; alpha: true; colorManagement: true; exposure: 1.1" vr-mode-ui="enabled: false" loading-screen="enabled: false">
           <a-entity light="type: ambient; intensity: 1.7"></a-entity>
           <a-entity light="type: directional; intensity: 1.0" position="1 3 2"></a-entity>
@@ -62,7 +64,7 @@
         <a class="button" id="modal-link" href="#" target="_blank" rel="noopener">詳細を見る</a>
         <button class="button light" type="button" data-close-modal>閉じる</button>
       </div>
-      <p class="small">モデル部分を左右にフリックすると、横方向だけ回転できます。</p>
+      <p class="small">モデル部分を左右にフリックすると、横方向だけ回転できます。タップで全画面表示になります。</p>
       <p class="small">3D表示が重い端末では、一覧カードだけで確認してください。</p>
     </section>
   </div>

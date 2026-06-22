@@ -180,3 +180,57 @@ button:disabled, .button.disabled { background: #94a3b8; box-shadow: none; curso
     font-size: 12px;
   }
 }
+
+/* =========================================================
+   3Dモデル全画面表示用のスタイル
+   ========================================================= */
+
+/* 通常時は全画面解除ボタンを非表示 */
+.fullscreen-close {
+  display: none;
+}
+
+body.model-fullscreen #modal-model-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000;
+  background-color: rgba(0, 0, 0, 0.85); /* 背景を暗くして没入感を出す */
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.model-fullscreen .fullscreen-close {
+  position: absolute;
+  top: env(safe-area-inset-top, 20px);
+  right: env(safe-area-inset-right, 20px);
+  width: 44px;
+  height: 44px;
+  font-size: 28px;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  z-index: 10001;
+  cursor: pointer;
+  display: flex; /* ここで表示する */
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent; 
+}
+
+body.model-fullscreen .model-zoom-controls {
+  z-index: 10001;
+  /* 全画面時はズームボタンを固定配置して操作しやすくする */
+  position: fixed;
+  bottom: env(safe-area-inset-bottom, 40px);
+  left: 50%;
+  transform: translateX(-50%);
+}
