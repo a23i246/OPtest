@@ -211,7 +211,7 @@ function zoomModalModel(type) {
 }
 
 // =========================================================
-// 🛠️ 修正：競合とフリーズを防ぐ安全な回転＆クリック制御
+// 🛠️ 修正：フリーズ原因のPointerCaptureを除去した安全な回転＆全画面ロジック
 // =========================================================
 function setupModelInteraction() {
   const wrap = document.getElementById('modal-model-wrap');
@@ -227,53 +227,42 @@ function setupModelInteraction() {
   let lastX = 0;
   let hasMoved = false;
 
-  // 指が触れたとき
+  // 1. タッチ開始（フリーズの原因となる setPointerCapture は完全削除しました）
   wrap.addEventListener('pointerdown', (event) => {
     isDragging = true;
     startX = event.clientX;
     lastX = event.clientX;
     hasMoved = false;
-    
-    // フリーズ原因になりやすいCaptureは全画面の時のみ限定で安全に適用
-    if (wrap.classList.contains('is-fullscreen') && wrap.setPointerCapture) {
-      wrap.setPointerCapture(event.pointerId);
-    }
   });
 
-  // 指が動いているとき
+  // 2. 指の移動（回転処理）
   wrap.addEventListener('pointermove', (event) => {
     if (!isDragging) return;
 
     const diffX = event.clientX - lastX;
-    // 数ピクセル以上の明確な移動があれば「ドラッグ（回転）」とみなす
+    
+    // 5ピクセル以上の移動があればスワイプ（回転操作）とみなす
     if (Math.abs(event.clientX - startX) > 5) {
       hasMoved = true;
     }
 
     lastX = event.clientX;
 
-    // 回転は通常枠でも全画面でもスムーズに動くようにする
+    // 恐竜モデルを回転
     modalModelRotationY += diffX * 0.45;
     model.setAttribute('rotation', `0 ${modalModelRotationY} 0`);
-    
-    if (event.cancelable) {
-      event.preventDefault();
-    }
   });
 
-  // 指が離れたとき（ここでタップ判定かドラッグ終了かを仕分ける）
+  // 3. タッチ終了（ここでタップ判定を行い全画面化する）
   function stopDrag(event) {
     if (!isDragging) return;
     isDragging = false;
 
-    if (event && event.pointerId !== undefined && wrap.releasePointerCapture) {
-      try { wrap.releasePointerCapture(event.pointerId); } catch(e) {}
-    }
-
-    // 💡【重要】スワイプ移動（hasMoved）が「無かった」場合のみ、純粋なタップとして全画面化を実行する
+    // 💡 指がほとんど動いていなければ「タップ（触っただけ）」と判定
     if (!hasMoved && !wrap.classList.contains('is-fullscreen')) {
       wrap.classList.add('is-fullscreen');
       
+      // 背景（青空と緑の草原）を出現させる
       if (sky) {
         sky.setAttribute('color', '#67e8f9'); // 青空
         sky.setAttribute('visible', 'true');
@@ -282,12 +271,14 @@ function setupModelInteraction() {
         grass.setAttribute('visible', 'true');
       }
 
+      // A-Frameにリサイズを通知
       setTimeout(() => {
         if (sceneEl && sceneEl.resize) sceneEl.resize();
-      }, 60);
+      }, 50);
     }
   }
 
+  // 安全にイベントを解除するための登録
   wrap.addEventListener('pointerup', stopDrag);
   wrap.addEventListener('pointercancel', stopDrag);
   wrap.addEventListener('pointerleave', stopDrag);
@@ -298,7 +289,7 @@ function setupModelInteraction() {
 // =========================================================
 window.addEventListener('DOMContentLoaded', () => {
   renderCollection();
-  setupModelInteraction(); // 🛠️ 統合した安全なインタラクション関数を実行
+  setupModelInteraction();
 
   document.addEventListener('click', (event) => {
     const detailButton = event.target.closest('[data-detail]');
