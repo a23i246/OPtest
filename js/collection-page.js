@@ -14,11 +14,20 @@ let currentDetailDino = null;
 // =========================================================
 function toggleFullscreenModel(enable) {
   const scene = document.querySelector('#modal-model-wrap a-scene');
+  const sky = document.getElementById('fullscreen-sky');
+  const camera = document.querySelector('#modal-model-wrap [camera]');
 
   if (enable) {
     document.body.classList.add('model-fullscreen');
+    if (sky) sky.setAttribute('visible', 'true');
+    if (camera) camera.setAttribute('look-controls', 'enabled', true);
   } else {
     document.body.classList.remove('model-fullscreen');
+    if (sky) sky.setAttribute('visible', 'false');
+    if (camera) {
+      camera.setAttribute('look-controls', 'enabled', false);
+      camera.setAttribute('rotation', '0 0 0');
+    }
   }
 
   // A-Frameのキャンバスサイズをウィンドウサイズに合わせるためにリサイズを発火
@@ -171,6 +180,7 @@ function openDetail(id) {
   if (modal) {
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    modal.style.display = 'block';
   }
 
   if (camera) {
@@ -202,8 +212,6 @@ function openDetail(id) {
 
 function closeDetail() {
   const modal = document.getElementById('detail-modal');
-  const model = document.getElementById('modal-model');
-  if (model) model.removeAttribute('gltf-model');
 
   currentDetailDino = null;
   modalModelZoom = 1;
@@ -215,6 +223,7 @@ function closeDetail() {
   if (modal) {
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
+    modal.style.display = 'none';
   }
 }
 

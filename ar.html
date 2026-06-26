@@ -14,22 +14,14 @@
   <script>
     AFRAME.registerComponent('fit-gltf-on-marker', {
       schema: {
-        target: { type: 'number', default: 1.2 },
-        yOffset: { type: 'number', default: 0.04 }
+        // GLBごとの元サイズ差をそろえるため、まず最大辺が1になるように正規化します。
+        // 最終的なARサイズは dinosaurs.js の arScale だけで調整します。
+        normalizeTarget: { type: 'number', default: 1 }
       },
       init: function () {
         this.el.addEventListener('model-loaded', () => {
           const mesh = this.el.getObject3D('mesh');
           if (!mesh || !window.THREE) return;
-
-          // ⭕ 親の a-marker から恐竜のIDを取得し、dinosaurs.js から設定を読み込む
-          const markerEl = this.el.closest('a-marker');
-          const dinoId = markerEl ? markerEl.dataset.dinoId : null;
-          const dinoData = window.DINOSAURS ? window.DINOSAURS.find(d => d.id === dinoId) : null;
-
-          // ⭕ dinosaurs.js に設定があればそちらを優先、なければデフォルト値を使用
-          const targetSize = (dinoData && dinoData.arFitTarget !== undefined) ? dinoData.arFitTarget : this.data.target;
-          const yOffsetVal = (dinoData && dinoData.arYOffset !== undefined) ? dinoData.arYOffset : this.data.yOffset;
 
           const scene = this.el.sceneEl;
           if (scene && scene.renderer) {
@@ -39,6 +31,7 @@
             } catch (e) {}
           }
 
+          // いったん標準状態に戻してから外接ボックスを取ります。
           this.el.object3D.scale.set(1, 1, 1);
           this.el.object3D.position.set(0, 0, 0);
           mesh.position.set(0, 0, 0);
@@ -51,13 +44,15 @@
           box.getCenter(center);
 
           const maxSize = Math.max(size.x, size.y, size.z);
-          const scale = maxSize > 0 ? targetSize / maxSize : 1; // ⭕ 変更
+          const scale = maxSize > 0 ? this.data.normalizeTarget / maxSize : 1;
 
+          // ここでは「足元中心を原点に合わせる」だけにします。
+          // 大きさと上下位置は .ar-model-root 側で arScale / arYOffset を使って調整します。
           this.el.object3D.scale.set(scale, scale, scale);
           this.el.object3D.position.set(0, 0, 0);
           mesh.position.set(
             -center.x,
-            -box.min.y + (yOffsetVal / scale),
+            -box.min.y,
             -center.z
           );
           this.el.object3D.updateMatrixWorld(true);
@@ -380,7 +375,7 @@
     <div class="adjust-controls">
       <label class="control-row">
         <span>サイズ <b id="demo-scale-value">0.00</b></span>
-        <input id="demo-scale" type="range" min="-2" max="2" step="0.05" value="0">
+        <input id="demo-scale" type="range" min="-4" max="4" step="0.1" value="0">
       </label>
 
       <label class="control-row">
@@ -682,7 +677,7 @@
 
        注意：
        ここで変えた値は画面確認用です。リロードすると初期値に戻ります。
-       良い値が見つかったら dinosaurs.js の arFitTarget / arYOffset に反映してください。
+       良い値が見つかったら dinosaurs.js の arScale / arYOffset に反映してください。
     ============================================================ */
     function setupProductionAdjustPanel() {
       const scaleInput = document.getElementById('demo-scale');
@@ -708,7 +703,7 @@
       let showOrigin = true;
 
       // 恐竜ごとの調整差分です。
-      // 画面表示の「0.00」は dinosaurs.js の arControlBaseScale / arControlBaseYOffset を意味します。
+      // 画面表示の「0.00」は dinosaurs.js の arScale / arYOffset を基準にした差分です。
       const adjustByDino = {};
 
       function getRootDinoId(root) {
@@ -727,11 +722,11 @@
       }
 
       function getBaseScale(dino) {
-        return Number(dino?.arControlBaseScale ?? 1);
+        return Number(dino?.arScale ?? 1);
       }
 
       function getBaseY(dino) {
-        return Number(dino?.arControlBaseYOffset ?? 0);
+        return Number(dino?.arYOffset ?? 0);
       }
 
       function applyAdjustSettings() {
@@ -748,7 +743,7 @@
           const id = getRootDinoId(root);
           const dino = getDino(id);
           const adjust = getAdjust(id);
-          const scale = Math.max(0.01, getBaseScale(dino) * Math.pow(2, adjust.scaleDelta));
+          const scale = Math.max(0.0001, getBaseScale(dino) * Math.pow(2, adjust.scaleDelta));
           const y = getBaseY(dino) + adjust.yDelta;
           root.setAttribute('scale', `${scale} ${scale} ${scale}`);
           root.setAttribute('position', `0 ${y} 0`);

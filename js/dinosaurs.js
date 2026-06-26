@@ -6,10 +6,8 @@
 // collectionYOffset   : コレクション詳細画面で上下位置を少しだけ調整します。下に寄る場合は少し上げます。
 // collectionRotation  : コレクション詳細画面を開いた直後の向き。正面がずれる場合はYの数字を調整します。
 // collectionCameraZ   : コレクション詳細画面のカメラ位置。モデルの中に入り込む場合は大きくします。
-// arFitTarget          : ARでfit-gltf-on-markerがモデルを自動フィットさせる基準サイズ。
-// arYOffset            : モデル本体を足元基準で少し上下させる微調整。
-// arControlBaseScale   : AR下部パネルの「サイズ 0.00」のときに使う倍率。
-// arControlBaseYOffset : AR下部パネルの「上下 0.00」のときに使う上下位置。
+// arScale              : AR画面での初期サイズ。下部パネルの「サイズ 0.00」の基準値です。
+// arYOffset            : AR画面での初期上下位置。下部パネルの「上下 0.00」の基準値です。
 
 window.DINOSAURS = [
   {
@@ -18,16 +16,14 @@ window.DINOSAURS = [
     marker: 'assets/markers/st1.patt',
     markerImage: 'assets/images/st1.png',
     model: 'assets/models/protoceratops.glb',
-    url: 'https://ja.wikipedia.org/wiki/%E3%83%97%E3%83%AD%E3%83%88%E3%82%B1%E3%83%A9%E3%83%88%E3%83%97%E3%82%B9',
+    url: 'https://zukan.kyoryukan.net/dinosaurs/protoceratops/',
     description: 'プロトケラトプスがARマーカーから飛び出して、君のコレクションに加わりました。フリルのある頭部が特徴的な恐竜です。',
     collectionFitTarget: 2.35,
     collectionDistance: 3.1,
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
-    arFitTarget: 1.45,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0,    // ⭕ AR画面での上下位置
-    arControlBaseScale: 4.00,      // ⭕ 下部パネルで「サイズ 0.00」と表示する基準倍率
-    arControlBaseYOffset: -0.03    // ⭕ 下部パネルで「上下 0.00」と表示する基準位置
+    arScale: 5.80,   // ⭕ AR画面での初期サイズ。画面ではこれを「サイズ 0.00」として扱う
+    arYOffset: -0.03 // ⭕ AR画面での初期上下位置。画面ではこれを「上下 0.00」として扱う
   },
   {
     id: 'ravjaa',
@@ -41,10 +37,8 @@ window.DINOSAURS = [
     collectionDistance: 3.1,
     collectionYOffset: 0.06,
     collectionRotation: '0 0 0',
-    arFitTarget: 20,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0,     // ⭕ AR画面での上下位置（足元補正後は大きいマイナス値を使わない）
-    arControlBaseScale: 1.00,
-    arControlBaseYOffset: 0.00
+    arScale: 20.00,  // ⭕ AR画面での初期サイズ。画面ではこれを「サイズ 0.00」として扱う
+    arYOffset: -3.00  // ⭕ AR画面での初期上下位置。画面ではこれを「上下 0.00」として扱う
   },
   {
     id: 'corythosaurus',
@@ -58,10 +52,8 @@ window.DINOSAURS = [
     collectionDistance: 3.1,
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
-    arFitTarget: 20,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0,     // ⭕ AR画面での上下位置（足元補正後は大きいマイナス値を使わない）
-    arControlBaseScale: 1.00,
-    arControlBaseYOffset: 0.00
+    arScale: 20.00,  // ⭕ AR画面での初期サイズ。画面ではこれを「サイズ 0.00」として扱う
+    arYOffset: -3.00 // ⭕ AR画面での初期上下位置。画面ではこれを「上下 0.00」として扱う
   },
   {
     id: 'zavacephale',
@@ -76,10 +68,8 @@ window.DINOSAURS = [
     collectionYOffset: 0.12,
     collectionCameraZ: 4.8,
     collectionRotation: '0 0 0',
-    arFitTarget: 10,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0,    // ⭕ AR画面での上下位置
-    arControlBaseScale: 0.20,      // ⭕ 写真で合わせた値。画面ではこれを「サイズ 0.00」として扱う
-    arControlBaseYOffset: -0.07    // ⭕ 写真で合わせた値。画面ではこれを「上下 0.00」として扱う
+    arScale: 0.60,   // ⭕ AR画面での初期サイズ。画面ではこれを「サイズ 0.00」として扱う
+    arYOffset: -0.07 // ⭕ AR画面での初期上下位置。画面ではこれを「上下 0.00」として扱う
   },
   {
     id: 'pinacosaurus',
@@ -87,17 +77,14 @@ window.DINOSAURS = [
     marker: 'assets/markers/st5.patt',
     markerImage: 'assets/images/st5.png',
     model: 'assets/models/pinacosaurus.glb',
-    url: '',
+    url: 'https://dinosaurmuseum.jp/dinosaur/pinacosaurus/',
     description: 'ピナコサウルスがARマーカーから飛び出して、君のコレクションに加わりました。※現在のファイル内にpinacosaurus名のGLBがないため、近い候補としてraujaa.glbを割り当てています。',
     collectionFitTarget: 2.45,
     collectionDistance: 3.1,
     collectionYOffset: 0.06,
     collectionRotation: '0 0 0',
-    arFitTarget: 10,  // ⭕ AR画面での3Dモデルの大きさ
-    //arFitTarget: 1.25,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0.02,  // ⭕ AR画面での上下位置
-    arControlBaseScale: 1.00,
-    arControlBaseYOffset: 0.00
+    arScale: 10.00,  // ⭕ AR画面での初期サイズ。画面ではこれを「サイズ 0.00」として扱う
+    arYOffset: 0.02  // ⭕ AR画面での初期上下位置。画面ではこれを「上下 0.00」として扱う
   },
   {
     id: 'tarbosaurus',
@@ -105,17 +92,15 @@ window.DINOSAURS = [
     marker: 'assets/markers/st6.patt',
     markerImage: 'assets/images/st6.png',
     model: 'assets/models/torikosaurusu.glb',
-    url: '',
+    url: 'http://dinosaur.ous.ac.jp/archives/tarbo.html',
     description: 'タルボサウルスがARマーカーから飛び出して、君のコレクションに加わりました。※現在のファイル内にtarbosaurus名のGLBがないため、近い候補としてtorikosaurusu.glbを割り当てています。',
     collectionFitTarget: 2.45,
     collectionDistance: 3.1,
     collectionYOffset: 0.04,
     collectionRotation: '0 0 0',
     // ⭕ タルボサウルス用のGLBは元データの見た目が大きいため、初期値を小さめにしています。
-    arFitTarget: 0.08,  // ⭕ AR画面での3Dモデルの大きさ
-    arYOffset: 0,     // ⭕ AR画面での上下位置（足元補正後は大きいマイナス値を使わない）
-    arControlBaseScale: 0.20,
-    arControlBaseYOffset: -0.03
+    arScale: 0.002,  // ⭕ AR画面での初期サイズ。画面ではこれを「サイズ 0.00」として扱う
+    arYOffset: -0.03 // ⭕ AR画面での初期上下位置。画面ではこれを「上下 0.00」として扱う
   }
 ];
 

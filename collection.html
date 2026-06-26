@@ -43,12 +43,13 @@
         <button class="fullscreen-close" type="button" data-exit-fullscreen aria-label="全画面を閉じる">×</button>
 
         <a-scene embedded renderer="antialias: true; alpha: true; colorManagement: true; exposure: 1.1" vr-mode-ui="enabled: false" loading-screen="enabled: false">
+          <a-sky id="fullscreen-sky" src="assets/images/sky-panorama.jpg" visible="false"></a-sky>
           <a-entity light="type: ambient; intensity: 1.7"></a-entity>
           <a-entity light="type: directional; intensity: 1.0" position="1 3 2"></a-entity>
 
           <a-entity id="modal-model" position="0 -0.35 -3" scale="2 2 2" rotation="0 0 0" animation-mixer></a-entity>
 
-          <a-entity camera position="0 0 3.4"></a-entity>
+          <a-entity camera position="0 0 3.4" look-controls="enabled: false; touchEnabled: false; mouseEnabled: false"></a-entity>
         </a-scene>
       </div>
 
