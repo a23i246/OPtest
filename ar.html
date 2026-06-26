@@ -54,9 +54,11 @@
       applyFinalTransform: function () {
         if (!this.modelCenter) return;
 
-        // 現在適用すべき最終的なARスケール倍率を取得
-        const s = window.getFinalARScale();
-        const finalScale = this.normalScale * s;
+        // 【修正】dinosaurs.jsのバラバラなarScaleを無視して、一律「1.5」をデフォルトサイズにする
+        // （下のスライダーの増減分（scaleDelta）だけは掛け合わせる）
+        const adjust = arAdjustments[currentId] || { scaleDelta: 0 };
+        const defaultSize = 1.5; // 🌟 ここを「1.0」や「2.0」に変えれば、全恐竜の基本サイズが一斉に変わります
+        const finalScale = this.normalScale * defaultSize * (1.0 + adjust.scaleDelta);
 
         // ① スケール（大きさ）を設定
         this.el.object3D.scale.set(finalScale, finalScale, finalScale);
