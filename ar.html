@@ -50,30 +50,32 @@
         });
       },
 
-      // 【修正】スライダーが動いたときにも、中心に居続けるように位置を毎回再計算する
+      // 【修正】すべての恐竜のデフォルトサイズを自動で一律に統一する
       applyFinalTransform: function () {
         if (!this.modelCenter) return;
 
-        // 【修正】dinosaurs.jsのバラバラなarScaleを無視して、一律「1.5」をデフォルトサイズにする
-        // （下のスライダーの増減分（scaleDelta）だけは掛け合わせる）
+        // 1. dinosaurs.js のバラバラな arScale を無視して、一律の基準サイズを定義する
+        // 🌟「1.5」の部分を「1.0」や「2.0」に変更すれば、すべての恐竜の大きさが一斉に変わります。
+        const defaultSize = 1.5;
+
+        // スライダーによるユーザーの拡大縮小の増減分（scaleDelta）だけを取得する
         const adjust = arAdjustments[currentId] || { scaleDelta: 0 };
-        const defaultSize = 1.5; // 🌟 ここを「1.0」や「2.0」に変えれば、全恐竜の基本サイズが一斉に変わります
+        
+        // 最終的な計算：正規化サイズ（1） × 統一サイズ（1.5） × スライダー倍率
         const finalScale = this.normalScale * defaultSize * (1.0 + adjust.scaleDelta);
 
         // ① スケール（大きさ）を設定
         this.el.object3D.scale.set(finalScale, finalScale, finalScale);
 
-        // ② 【重要】Blender上での原点ズレを打ち消す位置（position）を計算
-        // XとZは中心のズレを反転（マイナス）させて、マーカーの真ん中(0,0)に引き戻す
+        // ② Blender上での原点ズレを打ち消す位置（position）を計算
         const posX = -this.modelCenter.x * finalScale;
         const posZ = -this.modelCenter.z * finalScale;
 
-        // Y（高さ）は、モデルの一番下の頂点（足元）がマーカーの表面(0)にぴったり乗るように補正
-        // そこに、dinosaurs.js のベースYオフセットとスライダーの変動値を足す
-        const baseOffsetY = window.getFinalARYOffset();
+        // Y（高さ）は、モデルの足元がマーカーの表面(0)にぴったり乗るように補正
+        const baseOffsetY = window.getFinalARYOffset(); // 高さは今まで通りのベース値を引き継ぐ
         const posY = (-this.modelMinY * finalScale) + baseOffsetY;
 
-        // ③ 計算した位置を反映
+        // ③ 計算した位置とサイズを反映
         this.el.object3D.position.set(posX, posY, posZ);
         this.el.object3D.updateMatrixWorld(true);
       }
