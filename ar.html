@@ -12,57 +12,68 @@
   <script src="js/collection.js"></script>
 
   <script>
+    // =========================================================
+    // 【修正】GLBのサイズを揃えつつ、中心位置のズレを自動補正する
+    // =========================================================
     AFRAME.registerComponent('fit-gltf-on-marker', {
       schema: {
-        // GLBごとの元サイズ差をそろえるため、まず最大辺が1になるように正規化します。
-        // 最終的なARサイズは dinosaurs.js の arScale だけで調整します。
         normalizeTarget: { type: 'number', default: 1 }
       },
       init: function () {
         this.el.addEventListener('model-loaded', () => {
           const mesh = this.el.getObject3D('mesh');
-          if (!mesh || !window.THREE) return;
+          if (!mesh) return;
 
-          const scene = this.el.sceneEl;
-          if (scene && scene.renderer) {
-            try {
-              scene.renderer.setClearColor(new THREE.Color(0x000000), 0);
-              scene.renderer.setClearAlpha(0);
-            } catch (e) {}
-          }
-
-          // いったん標準状態に戻してから外接ボックスを取ります。
+          // 1. 正確なバウンディングボックス（サイズ）を測るため、一時的に位置とスケールをリセット
           this.el.object3D.scale.set(1, 1, 1);
           this.el.object3D.position.set(0, 0, 0);
-          mesh.position.set(0, 0, 0);
           this.el.object3D.updateMatrixWorld(true);
 
+          // 2. モデルを囲う見えない箱（Box3）から、サイズ・中心・底面の座標を取得
           const box = new THREE.Box3().setFromObject(mesh);
           const size = new THREE.Vector3();
           const center = new THREE.Vector3();
           box.getSize(size);
           box.getCenter(center);
 
-          const maxSize = Math.max(size.x, size.y, size.z);
-          const scale = maxSize > 0 ? this.data.normalizeTarget / maxSize : 1;
+          // 3. 元のサイズ差をなくすための「正規化倍率」を計算
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim === 0) return;
+          this.normalScale = this.data.normalizeTarget / maxDim;
 
-          // ここでは「足元中心を原点に合わせる」だけにします。
-          // 大きさと上下位置は .ar-model-root 側で arScale / arYOffset を使って調整します。
-          this.el.object3D.scale.set(scale, scale, scale);
-          this.el.object3D.position.set(0, 0, 0);
-          mesh.position.set(
-            -center.x,
-            -box.min.y,
-            -center.z
-          );
-          this.el.object3D.updateMatrixWorld(true);
-        });
+          // 【追加】後で位置計算（スライダー連動）に使うため、モデルの中心と底面の情報をコンポーネントに記憶
+          this.modelCenter = center.clone();
+          this.modelMinY = box.min.y;
 
-        this.el.addEventListener('model-error', (e) => {
-          const status = document.getElementById('status');
-          if (status) status.textContent = 'GLBモデルの読み込みに失敗しました。ファイル名を確認してください。';
-          console.error('GLB model-error:', e);
+          // 4. 初回の位置とサイズを適用
+          this.applyFinalTransform();
         });
+      },
+
+      // 【修正】スライダーが動いたときにも、中心に居続けるように位置を毎回再計算する
+      applyFinalTransform: function () {
+        if (!this.modelCenter) return;
+
+        // 現在適用すべき最終的なARスケール倍率を取得
+        const s = window.getFinalARScale();
+        const finalScale = this.normalScale * s;
+
+        // ① スケール（大きさ）を設定
+        this.el.object3D.scale.set(finalScale, finalScale, finalScale);
+
+        // ② 【重要】Blender上での原点ズレを打ち消す位置（position）を計算
+        // XとZは中心のズレを反転（マイナス）させて、マーカーの真ん中(0,0)に引き戻す
+        const posX = -this.modelCenter.x * finalScale;
+        const posZ = -this.modelCenter.z * finalScale;
+
+        // Y（高さ）は、モデルの一番下の頂点（足元）がマーカーの表面(0)にぴったり乗るように補正
+        // そこに、dinosaurs.js のベースYオフセットとスライダーの変動値を足す
+        const baseOffsetY = window.getFinalARYOffset();
+        const posY = (-this.modelMinY * finalScale) + baseOffsetY;
+
+        // ③ 計算した位置を反映
+        this.el.object3D.position.set(posX, posY, posZ);
+        this.el.object3D.updateMatrixWorld(true);
       }
     });
 
