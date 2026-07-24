@@ -20,17 +20,36 @@ function toggleFullscreenModel(enable) {
   if (enable) {
     document.body.classList.add('model-fullscreen');
     if (sky) sky.setAttribute('visible', 'true');
-    if (camera) camera.setAttribute('look-controls', 'enabled', true);
+    if (camera) {
+      camera.setAttribute('look-controls', 'enabled', true);
+      
+      // 加速度センサーの許可要求 (iOS 13+対応) と擬似移動の有効化
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission().then(response => {
+          if (response === 'granted') {
+            camera.setAttribute('pseudo-6dof', '');
+            camera.components['pseudo-6dof'].updateEnabled(true);
+          }
+        }).catch(console.error);
+      } else {
+        // Android等の場合
+        camera.setAttribute('pseudo-6dof', '');
+        camera.components['pseudo-6dof'].updateEnabled(true);
+      }
+    }
   } else {
     document.body.classList.remove('model-fullscreen');
     if (sky) sky.setAttribute('visible', 'false');
     if (camera) {
       camera.setAttribute('look-controls', 'enabled', false);
       camera.setAttribute('rotation', '0 0 0');
+      // 擬似移動を無効化してリセット
+      if (camera.components['pseudo-6dof']) {
+        camera.components['pseudo-6dof'].updateEnabled(false);
+      }
     }
   }
 
-  // A-Frameのキャンバスサイズをウィンドウサイズに合わせるためにリサイズを発火
   requestAnimationFrame(() => {
     setTimeout(() => scene?.resize?.(), 50);
   });
