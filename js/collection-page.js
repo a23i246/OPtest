@@ -62,21 +62,15 @@ function toggleFullscreenModel(enable) {
     setARLaunchStatus('ARボタンを押すと、恐竜を置いて周りを歩いて見られます。');
     if (sky) sky.setAttribute('visible', 'true');
     if (camera) {
-      camera.setAttribute('look-controls', 'enabled', true);
+      // 通常の全画面表示は端末の向きだけで視点を回す。位置・加速度は使わない。
+      camera.setAttribute('look-controls', {
+        enabled: true,
+        magicWindowTrackingEnabled: true,
+        touchEnabled: false,
+        mouseEnabled: false
+      });
       
-      // 加速度センサーの許可要求 (iOS 13+対応) と擬似移動の有効化
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission().then(response => {
-          if (response === 'granted') {
-            camera.setAttribute('pseudo-6dof', '');
-            camera.components['pseudo-6dof'].updateEnabled(true);
-          }
-        }).catch(console.error);
-      } else {
-        // Android等の場合
-        camera.setAttribute('pseudo-6dof', '');
-        camera.components['pseudo-6dof'].updateEnabled(true);
-      }
+      // 加速度イベントは登録せず、カメラの位置を変えない。
     }
   } else {
     document.body.classList.remove('model-fullscreen');
@@ -85,10 +79,6 @@ function toggleFullscreenModel(enable) {
     if (camera) {
       camera.setAttribute('look-controls', 'enabled', false);
       camera.setAttribute('rotation', '0 0 0');
-      // 擬似移動を無効化してリセット
-      if (camera.components['pseudo-6dof']) {
-        camera.components['pseudo-6dof'].updateEnabled(false);
-      }
     }
   }
 
