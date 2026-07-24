@@ -12,72 +12,62 @@
   <script src="js/collection.js"></script>
 
   <script>
-    // =========================================================
-    // 【修正】GLBのサイズを揃えつつ、中心位置のズレを自動補正する
-    // =========================================================
     AFRAME.registerComponent('fit-gltf-on-marker', {
       schema: {
-        normalizeTarget: { type: 'number', default: 1 }
+        // ⭕ 変更点: デフォルトの markerSize を 1 から 0.1 (10cm) に変更しました。
+        // これにより、3Dモデルの外接ボックスが10cmの正方形にフィットするよう初期計算されます。
+        markerSize: { type: 'number', default: 0.1 },
+        fitFootprint: { type: 'boolean', default: true }
       },
       init: function () {
         this.el.addEventListener('model-loaded', () => {
           const mesh = this.el.getObject3D('mesh');
-          if (!mesh) return;
+          if (!mesh || !window.THREE) return;
 
-          // 1. 正確なバウンディングボックス（サイズ）を測るため、一時的に位置とスケールをリセット
+          const scene = this.el.sceneEl;
+          if (scene && scene.renderer) {
+            try {
+              scene.renderer.setClearColor(new THREE.Color(0x000000), 0);
+              scene.renderer.setClearAlpha(0);
+            } catch (e) {}
+          }
+
           this.el.object3D.scale.set(1, 1, 1);
           this.el.object3D.position.set(0, 0, 0);
+          mesh.position.set(0, 0, 0);
           this.el.object3D.updateMatrixWorld(true);
 
-          // 2. モデルを囲う見えない箱（Box3）から、サイズ・中心・底面の座標を取得
           const box = new THREE.Box3().setFromObject(mesh);
           const size = new THREE.Vector3();
           const center = new THREE.Vector3();
           box.getSize(size);
           box.getCenter(center);
 
-          // 3. 元のサイズ差をなくすための「正規化倍率」を計算
-          const maxDim = Math.max(size.x, size.y, size.z);
-          if (maxDim === 0) return;
-          this.normalScale = this.data.normalizeTarget / maxDim;
+          let baseSize = this.data.fitFootprint
+            ? Math.max(size.x, size.z)
+            : Math.max(size.x, size.y, size.z);
 
-          // 【追加】後で位置計算（スライダー連動）に使うため、モデルの中心と底面の情報をコンポーネントに記憶
-          this.modelCenter = center.clone();
-          this.modelMinY = box.min.y;
+          if (!baseSize || baseSize < 0.000001) {
+            baseSize = Math.max(size.x, size.y, size.z);
+          }
 
-          // 4. 初回の位置とサイズを適用
-          this.applyFinalTransform();
+          const scale = baseSize > 0 ? this.data.markerSize / baseSize : 1;
+
+          this.el.object3D.scale.set(scale, scale, scale);
+          this.el.object3D.position.set(0, 0, 0);
+          mesh.position.set(
+            -center.x,
+            -box.min.y,
+            -center.z
+          );
+          this.el.object3D.updateMatrixWorld(true);
         });
-      },
 
-      // 【修正】すべての恐竜のデフォルトサイズを自動で一律に統一する
-      applyFinalTransform: function () {
-        if (!this.modelCenter) return;
-
-        // 1. dinosaurs.js のバラバラな arScale を無視して、一律の基準サイズを定義する
-        // 🌟「1.5」の部分を「1.0」や「2.0」に変更すれば、すべての恐竜の大きさが一斉に変わります。
-        const defaultSize = 1.5;
-
-        // スライダーによるユーザーの拡大縮小の増減分（scaleDelta）だけを取得する
-        const adjust = arAdjustments[currentId] || { scaleDelta: 0 };
-        
-        // 最終的な計算：正規化サイズ（1） × 統一サイズ（1.5） × スライダー倍率
-        const finalScale = this.normalScale * defaultSize * (1.0 + adjust.scaleDelta);
-
-        // ① スケール（大きさ）を設定
-        this.el.object3D.scale.set(finalScale, finalScale, finalScale);
-
-        // ② Blender上での原点ズレを打ち消す位置（position）を計算
-        const posX = -this.modelCenter.x * finalScale;
-        const posZ = -this.modelCenter.z * finalScale;
-
-        // Y（高さ）は、モデルの足元がマーカーの表面(0)にぴったり乗るように補正
-        const baseOffsetY = window.getFinalARYOffset(); // 高さは今まで通りのベース値を引き継ぐ
-        const posY = (-this.modelMinY * finalScale) + baseOffsetY;
-
-        // ③ 計算した位置とサイズを反映
-        this.el.object3D.position.set(posX, posY, posZ);
-        this.el.object3D.updateMatrixWorld(true);
+        this.el.addEventListener('model-error', (e) => {
+          const status = document.getElementById('status');
+          if (status) status.textContent = 'GLBモデルの読み込みに失敗しました。ファイル名を確認してください。';
+          console.error('GLB model-error:', e);
+        });
       }
     });
 
@@ -98,29 +88,22 @@
       const vw = viewport.width || window.innerWidth;
       const vh = viewport.height || window.innerHeight;
 
-      // 1. AR.jsが設定しているカメラ映像の本来の比率（今回は 1280x720 = 16:9）
       let videoAspect = 16 / 9; 
       if (videos.length > 0 && videos[0].videoWidth && videos[0].videoHeight) {
         videoAspect = videos[0].videoWidth / videos[0].videoHeight;
       }
       
-      // 2. 現在のスマートフォンの画面の比率
       const screenAspect = vw / vh;
-
       let videoW, videoH;
 
-      // 3. 画面の比率とカメラの比率を比較して、隙間ができない最小の拡大サイズを自動計算（object-fit: coverの再現）
       if (screenAspect > videoAspect) {
-        // 横に広いデバイス（タブレットやスマホの横向き）
         videoW = Math.ceil(vw);
         videoH = Math.ceil(vw / videoAspect);
       } else {
-        // 縦に長いデバイス（最新の超縦長スマホなど）
         videoH = Math.ceil(vh);
         videoW = Math.ceil(vh * videoAspect);
       }
 
-      // CSS変数に正確な計算値をセット
       document.documentElement.style.setProperty('--real-vw', `${vw}px`);
       document.documentElement.style.setProperty('--real-vh', `${vh}px`);
       document.documentElement.style.setProperty('--camera-vw', `${videoW}px`);
@@ -129,18 +112,18 @@
       videos.forEach((video) => {
         video.style.setProperty('position', 'fixed', 'important');
         video.style.setProperty('left', '50%', 'important');
-        video.style.setProperty('top', '50%', 'important'); // 👈 上下左右の中央に配置
+        video.style.setProperty('top', '50%', 'important');
         video.style.setProperty('right', 'auto', 'important');
         video.style.setProperty('bottom', 'auto', 'important');
         video.style.setProperty('width', `${videoW}px`, 'important');
-        video.style.setProperty('height', `${videoH}px`, 'important'); // 👈 画面のvhではなく、アスペクト比を維持した計算値にする
+        video.style.setProperty('height', `${videoH}px`, 'important');
         video.style.setProperty('min-width', `${videoW}px`, 'important');
         video.style.setProperty('min-height', `${videoH}px`, 'important');
         video.style.setProperty('max-width', 'none', 'important');
         video.style.setProperty('max-height', 'none', 'important');
         video.style.setProperty('object-fit', 'cover', 'important');
         video.style.setProperty('object-position', 'center center', 'important');
-        video.style.setProperty('transform', 'translate(-50%, -50%)', 'important'); // 👈 上下左右の中央寄せ
+        video.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
         video.style.setProperty('z-index', '0', 'important');
       });
 
@@ -186,22 +169,10 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    /* 上部の説明吹き出しは本番UIを小さくするため非表示 */
     .top-help {
       display: none;
     }
 
-    /* ============================================================
-       本番用の下部操作パネル
-       画面の約3分の1以内に収まるように、文字・余白・ボタンを小さめにしています。
-       表示内容：
-       ・認識中のマーカー名
-       ・コレクション追加ボタン
-       ・トップへ戻るボタン
-       ・サイズ調整
-       ・上下位置調整
-       ・原点の赤い球 ON/OFF
-    ============================================================ */
     .panel {
       position: fixed;
       left: 8px;
@@ -325,25 +296,24 @@
       z-index: 1 !important;
     }
 
-    /* ⭕ 変更後のCSS */
     body > video,
     video#arjs-video,
     video.arjs-video,
     .arjs-video {
       position: fixed !important;
       left: 50% !important;
-      top: 50% !important; /* 👈 top: 0 から 50% に変更 */
+      top: 50% !important;
       right: auto !important;
       bottom: auto !important;
       width: var(--camera-vw, 100vw) !important;
-      height: var(--camera-vh, 100dvh) !important; /* 👈 新しい計算変数に対応 */
+      height: var(--camera-vh, 100dvh) !important;
       min-width: var(--camera-vw, 100vw) !important;
-      min-height: var(--camera-vh, 100dvh) !important; /* 👈 新しい計算変数に対応 */
+      min-height: var(--camera-vh, 100dvh) !important;
       max-width: none !important;
       max-height: none !important;
       object-fit: cover !important;
       object-position: center center !important;
-      transform: translate(-50%, -50%) !important; /* 👈 上下左右の中央寄せに修正 */
+      transform: translate(-50%, -50%) !important;
       transform-origin: center center !important;
       background: #000 !important;
       z-index: 0 !important;
@@ -365,17 +335,11 @@
     .a-enter-vr, .a-enter-ar {
       display: none !important;
     }
-
   </style>
 </head>
 <body>
   <div class="top-help">マーカーをかざしてください。対応する3Dモデルを表示します。</div>
 
-  <!-- ============================================================
-       本番用の下部操作パネル
-       通常URLでも常に表示されます。
-       画面を広く使えるように、必要最低限の項目だけにしています。
-  ============================================================ -->
   <div class="panel">
     <div class="marker-row">
       <span class="marker-label">認識中</span>
@@ -390,7 +354,7 @@
     <div class="adjust-controls">
       <label class="control-row">
         <span>サイズ <b id="demo-scale-value">0.00</b></span>
-        <input id="demo-scale" type="range" min="-4" max="4" step="0.1" value="0">
+        <input id="demo-scale" type="range" min="-8" max="8" step="0.1" value="0">
       </label>
 
       <label class="control-row">
@@ -419,191 +383,119 @@
       <a-asset-item id="model-tarbosaurus" src="assets/models/torikosaurusu.glb"></a-asset-item>
     </a-assets>
 
-      <a-marker
-        id="marker-protoceratops"
-        data-dino-id="protoceratops"
-        type="pattern"
-        url="assets/markers/st1.patt"
-        emitevents="true"
-        smooth="true"
-        smoothCount="8"
-        smoothTolerance="0.01"
-        smoothThreshold="3">
-        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-        <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
-          <!-- 原点確認用の赤い球です。下部パネルの「原点ON/OFF」で表示を切り替えます。 -->
-          <a-sphere
-            class="demo-origin-ball"
-            position="0 0 0"
-            radius="0.03"
-            color="red"
-            visible="false">
-          </a-sphere>
+    <a-marker
+      id="marker-protoceratops"
+      data-dino-id="protoceratops"
+      type="pattern"
+      url="assets/markers/st1.patt"
+      size="0.1"
+      emitevents="true"
+      smooth="true"
+      smoothCount="8"
+      smoothTolerance="0.01"
+      smoothThreshold="3">
+      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+      <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
+        <a-sphere class="demo-origin-ball" position="0 0 0" radius="0.03" color="red" visible="false"></a-sphere>
+        <a-entity gltf-model="#model-protoceratops" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+      </a-entity>
+    </a-marker>
 
-          <a-entity
-            gltf-model="#model-protoceratops"
-            fit-gltf-on-marker
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
-            animation-mixer>
-          </a-entity>
-        </a-entity>
-      </a-marker>
+    <a-marker
+      id="marker-ravjaa"
+      data-dino-id="ravjaa"
+      type="pattern"
+      url="assets/markers/st2.patt"
+      size="0.1"
+      emitevents="true"
+      smooth="true"
+      smoothCount="8"
+      smoothTolerance="0.01"
+      smoothThreshold="3">
+      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+      <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
+        <a-sphere class="demo-origin-ball" position="0 0 0" radius="0.03" color="red" visible="false"></a-sphere>
+        <a-entity gltf-model="#model-ravjaa" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+      </a-entity>
+    </a-marker>
 
-      <a-marker
-        id="marker-ravjaa"
-        data-dino-id="ravjaa"
-        type="pattern"
-        url="assets/markers/st2.patt"
-        emitevents="true"
-        smooth="true"
-        smoothCount="8"
-        smoothTolerance="0.01"
-        smoothThreshold="3">
-        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-        <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
-          <!-- 原点確認用の赤い球です。下部パネルの「原点ON/OFF」で表示を切り替えます。 -->
-          <a-sphere
-            class="demo-origin-ball"
-            position="0 0 0"
-            radius="0.03"
-            color="red"
-            visible="false">
-          </a-sphere>
+    <a-marker
+      id="marker-corythosaurus"
+      data-dino-id="corythosaurus"
+      type="pattern"
+      url="assets/markers/st3.patt"
+      size="0.1"
+      emitevents="true"
+      smooth="true"
+      smoothCount="8"
+      smoothTolerance="0.01"
+      smoothThreshold="3">
+      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+      <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
+        <a-sphere class="demo-origin-ball" position="0 0 0" radius="0.03" color="red" visible="false"></a-sphere>
+        <a-entity gltf-model="#model-corythosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+      </a-entity>
+    </a-marker>
 
-          <a-entity
-            gltf-model="#model-ravjaa"
-            fit-gltf-on-marker
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
-            animation-mixer>
-          </a-entity>
-        </a-entity>
-      </a-marker>
+    <a-marker
+      id="marker-zavacephale"
+      data-dino-id="zavacephale"
+      type="pattern"
+      url="assets/markers/st4.patt"
+      size="0.1"
+      emitevents="true"
+      smooth="true"
+      smoothCount="8"
+      smoothTolerance="0.01"
+      smoothThreshold="3">
+      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+      <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
+        <a-sphere class="demo-origin-ball" position="0 0 0" radius="0.03" color="red" visible="false"></a-sphere>
+        <a-entity gltf-model="#model-zavacephale" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+      </a-entity>
+    </a-marker>
 
-      <a-marker
-        id="marker-corythosaurus"
-        data-dino-id="corythosaurus"
-        type="pattern"
-        url="assets/markers/st3.patt"
-        emitevents="true"
-        smooth="true"
-        smoothCount="8"
-        smoothTolerance="0.01"
-        smoothThreshold="3">
-        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-        <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
-          <!-- 原点確認用の赤い球です。下部パネルの「原点ON/OFF」で表示を切り替えます。 -->
-          <a-sphere
-            class="demo-origin-ball"
-            position="0 0 0"
-            radius="0.03"
-            color="red"
-            visible="false">
-          </a-sphere>
+    <a-marker
+      id="marker-pinacosaurus"
+      data-dino-id="pinacosaurus"
+      type="pattern"
+      url="assets/markers/st5.patt"
+      size="0.1"
+      emitevents="true"
+      smooth="true"
+      smoothCount="8"
+      smoothTolerance="0.01"
+      smoothThreshold="3">
+      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+      <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
+        <a-sphere class="demo-origin-ball" position="0 0 0" radius="0.03" color="red" visible="false"></a-sphere>
+        <a-entity gltf-model="#model-pinacosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+      </a-entity>
+    </a-marker>
 
-          <a-entity
-            gltf-model="#model-corythosaurus"
-            fit-gltf-on-marker
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
-            animation-mixer>
-          </a-entity>
-        </a-entity>
-      </a-marker>
-
-      <a-marker
-        id="marker-zavacephale"
-        data-dino-id="zavacephale"
-        type="pattern"
-        url="assets/markers/st4.patt"
-        emitevents="true"
-        smooth="true"
-        smoothCount="8"
-        smoothTolerance="0.01"
-        smoothThreshold="3">
-        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-        <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
-          <!-- 原点確認用の赤い球です。下部パネルの「原点ON/OFF」で表示を切り替えます。 -->
-          <a-sphere
-            class="demo-origin-ball"
-            position="0 0 0"
-            radius="0.03"
-            color="red"
-            visible="false">
-          </a-sphere>
-
-          <a-entity
-            gltf-model="#model-zavacephale"
-            fit-gltf-on-marker
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
-            animation-mixer>
-          </a-entity>
-        </a-entity>
-      </a-marker>
-
-      <a-marker
-        id="marker-pinacosaurus"
-        data-dino-id="pinacosaurus"
-        type="pattern"
-        url="assets/markers/st5.patt"
-        emitevents="true"
-        smooth="true"
-        smoothCount="8"
-        smoothTolerance="0.01"
-        smoothThreshold="3">
-        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-        <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
-          <!-- 原点確認用の赤い球です。下部パネルの「原点ON/OFF」で表示を切り替えます。 -->
-          <a-sphere
-            class="demo-origin-ball"
-            position="0 0 0"
-            radius="0.03"
-            color="red"
-            visible="false">
-          </a-sphere>
-
-          <a-entity
-            gltf-model="#model-pinacosaurus"
-            fit-gltf-on-marker
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
-            animation-mixer>
-          </a-entity>
-        </a-entity>
-      </a-marker>
-
-      <a-marker
-        id="marker-tarbosaurus"
-        data-dino-id="tarbosaurus"
-        type="pattern"
-        url="assets/markers/st6.patt"
-        emitevents="true"
-        smooth="true"
-        smoothCount="8"
-        smoothTolerance="0.01"
-        smoothThreshold="3">
-        <a-entity light="type: ambient; intensity: 1.8"></a-entity>
-        <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
-        <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
-          <!-- 原点確認用の赤い球です。下部パネルの「原点ON/OFF」で表示を切り替えます。 -->
-          <a-sphere
-            class="demo-origin-ball"
-            position="0 0 0"
-            radius="0.03"
-            color="red"
-            visible="false">
-          </a-sphere>
-
-          <a-entity
-            gltf-model="#model-tarbosaurus"
-            fit-gltf-on-marker
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 12000"
-            animation-mixer>
-          </a-entity>
-        </a-entity>
-      </a-marker>
+    <a-marker
+      id="marker-tarbosaurus"
+      data-dino-id="tarbosaurus"
+      type="pattern"
+      url="assets/markers/st6.patt"
+      size="0.1"
+      emitevents="true"
+      smooth="true"
+      smoothCount="8"
+      smoothTolerance="0.01"
+      smoothThreshold="3">
+      <a-entity light="type: ambient; intensity: 1.8"></a-entity>
+      <a-entity light="type: directional; intensity: 1.2" position="0 2 2"></a-entity>
+      <a-entity class="ar-model-root" position="0 0 0" rotation="0 180 0">
+        <a-sphere class="demo-origin-ball" position="0 0 0" radius="0.03" color="red" visible="false"></a-sphere>
+        <a-entity gltf-model="#model-tarbosaurus" fit-gltf-on-marker animation="property: rotation; to: 0 360 0; loop: true; dur: 12000" animation-mixer></a-entity>
+      </a-entity>
+    </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
@@ -681,19 +573,6 @@
       if (statusEl) statusEl.textContent = 'エラー: ' + (e.message || '不明なエラー');
     });
 
-    /* ============================================================
-       本番用の調整機能
-       URLに ?demo=1 を付けなくても常に使えます。
-
-       できること：
-       ・全モデルの親要素 ar-model-root の scale を変更
-       ・全モデルの親要素 ar-model-root の Y位置を変更
-       ・原点確認用の赤い球 demo-origin-ball を表示/非表示
-
-       注意：
-       ここで変えた値は画面確認用です。リロードすると初期値に戻ります。
-       良い値が見つかったら dinosaurs.js の arScale / arYOffset に反映してください。
-    ============================================================ */
     function setupProductionAdjustPanel() {
       const scaleInput = document.getElementById('demo-scale');
       const scaleValue = document.getElementById('demo-scale-value');
@@ -704,9 +583,6 @@
       const modelRoots = document.querySelectorAll('.ar-model-root');
       const originBalls = document.querySelectorAll('.demo-origin-ball');
 
-      // 原点確認用の赤い球は「モデルの親要素」の中に入っていると、
-      // サイズ・上下調整と一緒に動いてしまい、本当のマーカー原点が分かりにくくなります。
-      // そのため、読み込み時に a-marker 直下へ移動して、常に marker の 0,0,0 を示すようにします。
       originBalls.forEach((ball) => {
         const root = ball.closest('.ar-model-root');
         const marker = ball.closest('a-marker');
@@ -716,9 +592,6 @@
       });
 
       let showOrigin = true;
-
-      // 恐竜ごとの調整差分です。
-      // 画面表示の「0.00」は dinosaurs.js の arScale / arYOffset を基準にした差分です。
       const adjustByDino = {};
 
       function getRootDinoId(root) {
@@ -751,9 +624,6 @@
         if (scaleValue) scaleValue.textContent = activeAdjust.scaleDelta.toFixed(2);
         if (yValue) yValue.textContent = activeAdjust.yDelta.toFixed(2);
 
-        // 各モデルに、それぞれの基準値 + そのモデル用の差分を適用します。
-        // サイズは「足し算」だと 0.20 など小さいモデルでマイナスになりやすいため、
-        // 2の累乗倍率にして、0.00=基準、+1.00=2倍、-1.00=半分にしています。
         modelRoots.forEach((root) => {
           const id = getRootDinoId(root);
           const dino = getDino(id);
@@ -775,7 +645,6 @@
         }
       }
 
-      // 今認識している恐竜の調整値をスライダーへ反映します。
       window.refreshARAdjustPanel = function refreshARAdjustPanel() {
         const adjust = getAdjust(currentId);
         if (scaleInput) scaleInput.value = String(adjust.scaleDelta);
@@ -804,7 +673,6 @@
     }
 
     setupProductionAdjustPanel();
-
     updateCount();
   </script>
 </body>

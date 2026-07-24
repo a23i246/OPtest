@@ -10,6 +10,7 @@ let stars = [];
 let gameStarted = false;
 let gameOver = false;
 let gameClear = false;
+let resultScreenShown = false;
 let isPointerDown = false;
 let autoShotOnTouch = false;
 let pointerStartX = 0;
@@ -112,7 +113,7 @@ function applyRelativePointerMove() {
 function isEventOnGameButton() {
   const event = window.event;
   const target = event && event.target;
-  if (target && target.closest && target.closest('.game-top-panel, .game-actions, a, button')) return true;
+  if (target && target.closest && target.closest('.game-top-panel, .game-actions, #ranking-modal, a, button, input')) return true;
 
   // Android Chrome + p5.js では window.event が取れないことがあるため、
   // 画面上部パネルの高さでも判定して、ボタン操作をゲーム側が奪わないようにする。
@@ -135,7 +136,7 @@ function startPointerControl() {
     return false;
   }
   if (gameOver || gameClear) {
-    resetGame();
+    // ランキング画面のボタンから再開する。画面タップでは即リセットしない。
     return false;
   }
   const p = getPointerPosition();
@@ -174,7 +175,7 @@ function keyPressed() {
     return false;
   }
   if (keyCode === ENTER && (gameOver || gameClear)) {
-    resetGame();
+    // 名前入力中の誤リセットを防ぐ。再開はランキング画面のボタンから行う。
     return false;
   }
   if (keyCode === 32 && gameStarted && !gameOver && !gameClear) {
@@ -243,6 +244,25 @@ function draw() {
   drawHUD();
 }
 
+
+function finishGame(resultType) {
+  if (resultScreenShown) return;
+  resultScreenShown = true;
+
+  isPointerDown = false;
+  autoShotOnTouch = false;
+
+  if (resultType === 'clear') {
+    gameClear = true;
+  } else {
+    gameOver = true;
+  }
+
+  if (typeof showRankingScreen === 'function') {
+    showRankingScreen(score, resultType);
+  }
+}
+
 function resetGame() {
   player = new Player(width / 2, height - 76);
   bullets = [];
@@ -268,6 +288,8 @@ function resetGame() {
   shakeAmount = 0;
   gameOver = false;
   gameClear = false;
+  resultScreenShown = false;
+  if (typeof hideRankingScreen === 'function') hideRankingScreen();
   gameStarted = true;
 
   const title = document.getElementById('title-ui');
@@ -293,7 +315,7 @@ function damagePlayer() {
   playerInvincibleTimer = 90;
 
   if (player.hp <= 0) {
-    gameOver = true;
+    finishGame('gameover');
   }
   return true;
 }
@@ -352,7 +374,7 @@ function updateBullets() {
           enemies = [];
 
           if (bossLevel >= 2) {
-            gameClear = true;
+            finishGame('clear');
           } else {
             // 1体目を倒した後、赤い敵カウントを0に戻して、改めて15体で2体目。
             bossLevel = 2;

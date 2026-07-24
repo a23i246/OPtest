@@ -11,7 +11,36 @@
   <script defer src="js/preload.js"></script>
   <script defer src="js/game-assets/p5.js"></script>
   <script defer src="js/game-assets/class.js"></script>
-  <script defer src="js/game-assets/sketch.js"></script>
+  <script defer src="js/ranking.js?v=3"></script>
+  <script defer src="js/game-assets/sketch.js?v=3"></script>
+
+  <style>
+    #ranking-modal[hidden] { display: none; }
+    #ranking-modal {
+      position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center;
+      padding: 18px; background: rgba(3, 7, 18, 0.88); color: #fff;
+    }
+    .ranking-box {
+      width: min(92vw, 420px); max-height: 88vh; overflow-y: auto; box-sizing: border-box;
+      padding: 22px; border: 2px solid #22d3ee; border-radius: 16px;
+      background: #111827; text-align: center; box-shadow: 0 0 28px rgba(34, 211, 238, 0.35);
+    }
+    .ranking-box h2 { margin: 0 0 8px; color: #67e8f9; }
+    .ranking-score { font-size: 1.15rem; }
+    #ranking-player-name {
+      width: 100%; box-sizing: border-box; margin: 8px 0; padding: 12px;
+      border: 1px solid #94a3b8; border-radius: 8px; font-size: 16px;
+    }
+    .ranking-box button {
+      width: 100%; margin-top: 8px; padding: 12px; border: 0; border-radius: 8px;
+      font-weight: 700; font-size: 15px; cursor: pointer;
+    }
+    #ranking-submit-button { background: #22d3ee; color: #082f49; }
+    #ranking-retry-button { background: #e5e7eb; color: #111827; }
+    #ranking-list { text-align: left; padding-left: 2.2em; line-height: 1.75; }
+    #ranking-status { min-height: 1.5em; margin: 8px 0 0; font-size: 0.88rem; color: #a7f3d0; }
+    #ranking-status.is-error { color: #fca5a5; }
+  </style>
 </head>
 <body class="game-page-body">
   <div id="game-shell">
@@ -22,7 +51,6 @@
       <div class="mini-progress-track"><div class="mini-progress-fill" data-progress-bar></div></div>
       <div class="game-actions">
         <a class="button light js-game-nav" href="index.html">元のページに戻る</a>
-        <a class="button js-game-nav" href="ar.html?allsafe=2">ARカメラを起動する</a>
       </div>
     </div>
 
@@ -32,6 +60,20 @@
         <p class="blink">- TAP START -</p>
         <p class="title-help">縦型：白い点だけが当たり判定 / 指を動かした分だけ移動</p>
       </div>
+    </div>
+  </div>
+
+
+  <div id="ranking-modal" hidden aria-modal="true" role="dialog" aria-labelledby="ranking-result-title">
+    <div class="ranking-box">
+      <h2 id="ranking-result-title">GAME OVER</h2>
+      <p class="ranking-score">今回のスコア：<strong id="ranking-final-score">0</strong>点</p>
+      <input id="ranking-player-name" type="text" maxlength="10" placeholder="名前を入力（10文字まで）" autocomplete="nickname">
+      <button id="ranking-submit-button" type="button">ランキングに登録</button>
+      <h3>共有ランキング TOP10</h3>
+      <ol id="ranking-list"></ol>
+      <p id="ranking-status" role="status" aria-live="polite"></p>
+      <button id="ranking-retry-button" type="button">もう一度遊ぶ</button>
     </div>
   </div>
 

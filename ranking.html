@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ミニゲームランキング - 恐竜ARスタンプラリー</title>
+  <meta name="theme-color" content="#111827">
+  <link rel="stylesheet" href="css/common.css">
+  <style>
+    body { background: #07111f; color: #f8fafc; }
+    .ranking-page { width: min(94vw, 760px); margin: 0 auto; padding: 24px 0 48px; }
+    .ranking-header { text-align: center; margin-bottom: 18px; }
+    .ranking-header h1 { margin-bottom: 8px; }
+    .ranking-panel { background: #111827; border: 2px solid #22d3ee; border-radius: 16px; padding: 18px; box-shadow: 0 0 24px rgba(34,211,238,.2); }
+    .ranking-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ranking-toolbar .button { flex: 1 1 180px; text-align: center; }
+    .ranking-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 420px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #334155; text-align: left; }
+    th:first-child, td:first-child { width: 70px; text-align: center; }
+    th:last-child, td:last-child { width: 120px; text-align: right; }
+    tbody tr:nth-child(-n+3) { font-weight: 700; }
+    #ranking-page-status { min-height: 1.5em; margin: 12px 0 0; color: #a7f3d0; }
+    #ranking-page-status.is-error { color: #fca5a5; }
+    .admin-box { margin-top: 18px; padding-top: 16px; border-top: 1px solid #334155; }
+    .admin-box details { background: #0f172a; border-radius: 10px; padding: 12px; }
+    .admin-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+    .admin-row input { min-width: 0; padding: 11px; border-radius: 8px; border: 1px solid #94a3b8; font-size: 16px; }
+    .danger-button { border: 0; border-radius: 8px; padding: 11px 16px; background: #ef4444; color: #fff; font-weight: 700; cursor: pointer; }
+    .danger-button:disabled { opacity: .55; cursor: default; }
+    .small-note { color: #cbd5e1; font-size: .9rem; }
+  </style>
+  <script defer src="js/ranking-page.js?v=2"></script>
+</head>
+<body>
+  <main class="ranking-page">
+    <header class="ranking-header">
+      <h1>ミニゲームランキング</h1>
+      <p>共有ランキングを最大100件まで表示します。</p>
+    </header>
+
+    <section class="ranking-panel">
+      <div class="ranking-toolbar">
+        <a class="button light" href="index.html">ホームへ戻る</a>
+        <button class="button" id="ranking-page-reload" type="button">最新の記録に更新</button>
+      </div>
+
+      <div class="ranking-table-wrap">
+        <table aria-label="ミニゲームランキング">
+          <thead>
+            <tr><th>順位</th><th>名前</th><th>スコア</th></tr>
+          </thead>
+          <tbody id="ranking-page-body">
+            <tr><td colspan="3">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p id="ranking-page-status" role="status" aria-live="polite"></p>
+
+      <div class="admin-box">
+        <details>
+          <summary>管理者用：ランキングをリセット</summary>
+          <p class="small-note">パスワードを入力すると、データベース内のランキングを全件削除します。この操作は元に戻せません。</p>
+          <div class="admin-row">
+            <input id="ranking-reset-password" type="password" placeholder="管理者パスワード" autocomplete="current-password">
+            <button id="ranking-reset-button" class="danger-button" type="button">全件リセット</button>
+          </div>
+        </details>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
