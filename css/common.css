@@ -234,3 +234,45 @@ body.model-fullscreen .model-zoom-controls {
   left: 50%;
   transform: translateX(-50%);
 }
+
+/* AR 起動用の model-viewer は画面には出さず、全画面の操作ボタンから起動する。 */
+.ar-model-launcher {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ar-launch-controls {
+  display: none;
+}
+
+body.model-fullscreen .ar-launch-controls {
+  display: block;
+  position: fixed;
+  z-index: 10001;
+  left: 50%;
+  bottom: calc(94px + env(safe-area-inset-bottom));
+  width: min(320px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.ar-launch-button {
+  min-width: 180px;
+  background: #16a34a;
+  color: #fff;
+  border: 1px solid #16a34a;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, .3);
+}
+
+.ar-launch-status {
+  margin: 8px 0 0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .8);
+}

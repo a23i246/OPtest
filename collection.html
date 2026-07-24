@@ -8,7 +8,9 @@
   <link rel="stylesheet" href="css/common.css">
 
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-  
+  <!-- iPhone: Quick Look / Android: WebXR or Scene Viewer -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer@4.2.0/dist/model-viewer.min.js"></script>
+
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
   <script src="js/dinosaurs.js"></script>
@@ -51,6 +53,18 @@
 
           <a-entity camera position="0 0 3.4" look-controls="enabled: false; touchEnabled: false; mouseEnabled: false"></a-entity>
         </a-scene>
+
+        <!-- Without ios-src, model-viewer generates a Quick Look USDZ from this GLB on demand. -->
+        <model-viewer
+          id="ar-model-launcher"
+          class="ar-model-launcher"
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-placement="floor"
+          ar-scale="auto"
+          xr-environment
+          shadow-intensity="1">
+        </model-viewer>
       </div>
 
       <div class="model-zoom-controls" aria-label="3Dモデルの大きさ調整">
@@ -68,6 +82,11 @@
       <p class="small">モデル部分を左右にフリックすると、横方向だけ回転できます。タップで全画面表示になります。</p>
       <p class="small">3D表示が重い端末では、一覧カードだけで確認してください。</p>
     </section>
+  </div>
+
+  <div class="ar-launch-controls">
+    <button class="button ar-launch-button" type="button" data-launch-ar>ARでまわりを見る</button>
+    <p class="ar-launch-status" id="ar-launch-status" role="status" aria-live="polite"></p>
   </div>
 </body>
 </html>

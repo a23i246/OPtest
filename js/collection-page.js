@@ -9,6 +9,46 @@ let modalModelZoom = 1;
 let modalModelBaseTarget = 2.2;
 let currentDetailDino = null;
 
+// ios-src を省略すると、model-viewer が GLB から Quick Look 用の USDZ を起動時に生成する。
+// iPhone は Quick Look、Android は WebXR / Scene Viewer を同じ起動口から利用する。
+function configureARModelLauncher(dino) {
+  const launcher = document.getElementById('ar-model-launcher');
+  if (!launcher || !dino) return;
+
+  launcher.setAttribute('src', dino.model);
+  launcher.setAttribute('alt', `${dino.name}をARで見る`);
+}
+
+function setARLaunchStatus(message) {
+  const status = document.getElementById('ar-launch-status');
+  if (status) status.textContent = message;
+}
+
+function launchCurrentModelInAR() {
+  const launcher = document.getElementById('ar-model-launcher');
+  if (!currentDetailDino || !launcher) return;
+
+  // モバイルブラウザではユーザー操作の同期処理中に起動する必要があるため、ここでは await しない。
+  if (typeof launcher.activateAR !== 'function') {
+    setARLaunchStatus('AR機能を準備中です。少し待ってからもう一度お試しください。');
+    return;
+  }
+
+  setARLaunchStatus('ARを起動しています…');
+  try {
+    const result = launcher.activateAR();
+    if (result && typeof result.catch === 'function') {
+      result.catch((error) => {
+        console.warn('AR launch failed:', error);
+        setARLaunchStatus('この端末またはブラウザではARを起動できません。iPhone は Safari、Android は Chrome でお試しください。');
+      });
+    }
+  } catch (error) {
+    console.warn('AR launch failed:', error);
+    setARLaunchStatus('ARを起動できませんでした。iPhone は Safari、Android は Chrome でお試しください。');
+  }
+}
+
 // =========================================================
 // 全画面表示の切り替え
 // =========================================================
@@ -19,6 +59,7 @@ function toggleFullscreenModel(enable) {
 
   if (enable) {
     document.body.classList.add('model-fullscreen');
+    setARLaunchStatus('ARボタンを押すと、恐竜を置いて周りを歩いて見られます。');
     if (sky) sky.setAttribute('visible', 'true');
     if (camera) {
       camera.setAttribute('look-controls', 'enabled', true);
@@ -39,6 +80,7 @@ function toggleFullscreenModel(enable) {
     }
   } else {
     document.body.classList.remove('model-fullscreen');
+    setARLaunchStatus('');
     if (sky) sky.setAttribute('visible', 'false');
     if (camera) {
       camera.setAttribute('look-controls', 'enabled', false);
@@ -206,6 +248,8 @@ function openDetail(id) {
     camera.setAttribute('position', `0 0 ${Number(dino.collectionCameraZ) || 3.4}`);
   }
 
+  configureARModelLauncher(dino);
+
   if (model) {
     model.removeAttribute('gltf-model');
     model.removeAttribute('animation');
@@ -235,6 +279,7 @@ function closeDetail() {
   currentDetailDino = null;
   modalModelZoom = 1;
   updateZoomLabel();
+  setARLaunchStatus('');
   
   // モーダルを閉じる際に全画面も解除する
   toggleFullscreenModel(false);
@@ -313,6 +358,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const detailButton = event.target.closest('[data-detail]');
     if (detailButton && !detailButton.disabled) openDetail(detailButton.dataset.detail);
+
+    const arButton = event.target.closest('[data-launch-ar]');
+    if (arButton) {
+      launchCurrentModelInAR();
+      return;
+    }
 
     const zoomButton = event.target.closest('[data-model-zoom]');
     if (zoomButton) {
