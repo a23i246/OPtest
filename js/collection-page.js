@@ -57,10 +57,13 @@ function toggleFullscreenModel(enable) {
   const sky = document.getElementById('fullscreen-sky');
   const camera = document.querySelector('#modal-model-wrap [camera]');
 
+  const fullscreenName = document.getElementById('fullscreen-dino-name');
+
   if (enable) {
     document.body.classList.add('model-fullscreen');
     setARLaunchStatus('ARボタンを押すと、恐竜を置いて周りを歩いて見られます。');
     if (sky) sky.setAttribute('visible', 'true');
+    if (fullscreenName) fullscreenName.style.display = 'block';
     if (camera) {
       // 通常の全画面表示は端末の向きだけで視点を回す。位置・加速度は使わない。
       camera.setAttribute('look-controls', {
@@ -76,6 +79,7 @@ function toggleFullscreenModel(enable) {
     document.body.classList.remove('model-fullscreen');
     setARLaunchStatus('');
     if (sky) sky.setAttribute('visible', 'false');
+    if (fullscreenName) fullscreenName.style.display = 'none';
     if (camera) {
       camera.setAttribute('look-controls', 'enabled', false);
       camera.setAttribute('rotation', '0 0 0');
@@ -215,6 +219,9 @@ function openDetail(id) {
   const model = document.getElementById('modal-model');
   const scene = document.querySelector('#modal-model-wrap a-scene');
   const camera = document.querySelector('#modal-model-wrap [camera]');
+
+  const fullscreenName = document.getElementById('fullscreen-dino-name');
+  if (fullscreenName) fullscreenName.textContent = dino.name;
 
   if (title) title.textContent = dino.name;
   if (description) description.textContent = dino.description;
