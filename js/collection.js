@@ -53,4 +53,3 @@ function findDinosaur(id) {
   // js/dinosaurs.js の一覧から、指定IDの恐竜を1件探します。
   return (window.DINOSAURS || []).find((dino) => dino.id === id);
 }
-

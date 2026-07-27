@@ -1,0 +1,13 @@
+# テキストファイル
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+
+# バイナリファイル
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.glb binary
+*.zip binary

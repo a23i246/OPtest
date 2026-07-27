@@ -18,7 +18,11 @@
     table { width: 100%; border-collapse: collapse; min-width: 420px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #334155; text-align: left; }
     th:first-child, td:first-child { width: 70px; text-align: center; }
-    th:last-child, td:last-child { width: 120px; text-align: right; }
+    th:nth-child(3), td:nth-child(3) { width: 120px; text-align: right; }
+    th:last-child, td:last-child { width: 130px; text-align: center; font-weight: 700; }
+    td[data-stage="boss1"] { color: #fbbf24; }
+    td[data-stage="boss2"] { color: #fb923c; }
+    td[data-stage="clear"] { color: #6ee7b7; }
     tbody tr:nth-child(-n+3) { font-weight: 700; }
     #ranking-page-status { min-height: 1.5em; margin: 12px 0 0; color: #a7f3d0; }
     #ranking-page-status.is-error { color: #fca5a5; }
@@ -30,7 +34,7 @@
     .danger-button:disabled { opacity: .55; cursor: default; }
     .small-note { color: #cbd5e1; font-size: .9rem; }
   </style>
-  <script defer src="js/ranking-page.js?v=2"></script>
+  <script defer src="js/ranking-page.js?v=4"></script>
 </head>
 <body>
   <main class="ranking-page">
@@ -48,10 +52,10 @@
       <div class="ranking-table-wrap">
         <table aria-label="ミニゲームランキング">
           <thead>
-            <tr><th>順位</th><th>名前</th><th>スコア</th></tr>
+            <tr><th>順位</th><th>名前</th><th>スコア</th><th>到達状況</th></tr>
           </thead>
           <tbody id="ranking-page-body">
-            <tr><td colspan="3">読み込み中...</td></tr>
+            <tr><td colspan="4">読み込み中...</td></tr>
           </tbody>
         </table>
       </div>

@@ -7,9 +7,11 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxd2Rnc2Fub2p5bmhpbW9kZ3l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMzYwOTUsImV4cCI6MjA5OTgxMjA5NX0.Rip29YLG3Ck-LEMtPVxBsuE8p1vnarmMdU_FoYDbOfU';
   const TABLE_NAME = 'shooting_scores';
   const MAX_RANKING = 10;
+  const REWARD_SCORE = 10000;
 
   let pendingScore = 0;
   let pendingResult = 'gameover';
+  let pendingProgress = 'boss1';
   let submittedThisResult = false;
 
   function normalizeName(name) {
@@ -18,6 +20,18 @@
 
   function normalizeScore(score) {
     return Math.max(0, Math.floor(Number(score) || 0));
+  }
+
+  function normalizeProgress(progress) {
+    return ['boss1', 'boss2', 'clear'].includes(progress) ? progress : null;
+  }
+
+  function getProgressLabel(progress) {
+    return {
+      boss1: '第1ボス挑戦',
+      boss2: '第2ボス挑戦',
+      clear: '完全クリア'
+    }[progress] || '記録なし';
   }
 
   function setStatus(message, isError) {
@@ -61,7 +75,7 @@
 
   async function loadRanking() {
     const query = [
-      'select=player_name,score,created_at',
+      'select=player_name,score,progress_stage,created_at',
       'order=score.desc,created_at.asc',
       'limit=' + MAX_RANKING
     ].join('&');
@@ -70,13 +84,14 @@
     return Array.isArray(data) ? data : [];
   }
 
-  async function addScore(playerName, score) {
+  async function addScore(playerName, score, progress) {
     await request(TABLE_NAME, {
       method: 'POST',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({
         player_name: normalizeName(playerName),
-        score: normalizeScore(score)
+        score: normalizeScore(score),
+        progress_stage: normalizeProgress(progress)
       })
     });
   }
@@ -98,7 +113,8 @@
       item.textContent =
         (index + 1) + '位  ' +
         normalizeName(record.player_name) + '  ' +
-        normalizeScore(record.score) + '点';
+        normalizeScore(record.score) + '点  ／  ' +
+        getProgressLabel(record.progress_stage);
       list.appendChild(item);
     });
   }
@@ -127,9 +143,12 @@
     }
   }
 
-  window.showRankingScreen = function (finalScore, resultType) {
+  window.showRankingScreen = function (finalScore, resultType, reachedBossLevel) {
     pendingScore = normalizeScore(finalScore);
     pendingResult = resultType === 'clear' ? 'clear' : 'gameover';
+    pendingProgress = pendingResult === 'clear'
+      ? 'clear'
+      : (Number(reachedBossLevel) >= 2 ? 'boss2' : 'boss1');
     submittedThisResult = false;
 
     const modal = document.getElementById('ranking-modal');
@@ -137,6 +156,7 @@
     const score = document.getElementById('ranking-final-score');
     const input = document.getElementById('ranking-player-name');
     const submit = document.getElementById('ranking-submit-button');
+    const reward = document.getElementById('ranking-reward');
 
     if (title) title.textContent = pendingResult === 'clear' ? 'GAME CLEAR！' : 'GAME OVER';
     if (score) score.textContent = pendingScore;
@@ -147,6 +167,9 @@
     if (submit) {
       submit.disabled = false;
       submit.textContent = 'ランキングに登録';
+    }
+    if (reward) {
+      reward.hidden = pendingScore < REWARD_SCORE;
     }
 
     setStatus('');
@@ -164,6 +187,7 @@
     const input = document.getElementById('ranking-player-name');
     const submit = document.getElementById('ranking-submit-button');
     const retry = document.getElementById('ranking-retry-button');
+    const rewardDownload = document.getElementById('reward-download-button');
 
     if (modal) {
       ['touchstart', 'touchmove', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click'].forEach(function (type) {
@@ -191,7 +215,7 @@
         setStatus('スコアを登録しています...');
 
         try {
-          await addScore(name, pendingScore);
+          await addScore(name, pendingScore, pendingProgress);
           submittedThisResult = true;
           localStorage.setItem('dinosaurShootingPlayerName', name);
 
@@ -204,6 +228,12 @@
           submit.textContent = 'ランキングに登録';
           setStatus('登録エラー：' + error.message, true);
         }
+      });
+    }
+
+    if (rewardDownload) {
+      rewardDownload.addEventListener('click', function (event) {
+        event.stopPropagation();
       });
     }
 

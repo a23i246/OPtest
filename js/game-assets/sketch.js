@@ -259,7 +259,8 @@ function finishGame(resultType) {
   }
 
   if (typeof showRankingScreen === 'function') {
-    showRankingScreen(score, resultType);
+    // bossLevel 1: 第1ボス段階、bossLevel 2: 第2ボス段階。
+    showRankingScreen(score, resultType, bossLevel);
   }
 }
 

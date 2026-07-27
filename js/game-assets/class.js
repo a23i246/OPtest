@@ -6,6 +6,16 @@
 const BOSS1_HP = 40; // 1体目：アンパン風ボス
 const BOSS2_HP = 30; // 2体目：雲ボス
 
+// 60FPSを基準に、実際に経過した時間に応じて移動量を補正します。
+// ホイール操作や一時的な端末負荷でFPSが下がっても、弾速が遅くなりません。
+// 極端に長く画面が止まった場合のワープを防ぐため、最大3フレーム分に制限します。
+function getGameTimeScale() {
+  const elapsed = typeof deltaTime === 'number' && Number.isFinite(deltaTime)
+    ? deltaTime
+    : 1000 / 60;
+  return constrain(elapsed / (1000 / 60), 0.25, 3);
+}
+
 class Player {
   constructor(x, y) {
     this.x = x;
@@ -26,11 +36,12 @@ class Player {
   }
 
   update() {
+    const timeScale = getGameTimeScale();
     // PC確認用：WASD / 矢印キー
-    if (keyIsDown(87) || keyIsDown(UP_ARROW)) this.y -= this.speed;
-    if (keyIsDown(83) || keyIsDown(DOWN_ARROW)) this.y += this.speed;
-    if (keyIsDown(65) || keyIsDown(LEFT_ARROW)) this.x -= this.speed;
-    if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) this.x += this.speed;
+    if (keyIsDown(87) || keyIsDown(UP_ARROW)) this.y -= this.speed * timeScale;
+    if (keyIsDown(83) || keyIsDown(DOWN_ARROW)) this.y += this.speed * timeScale;
+    if (keyIsDown(65) || keyIsDown(LEFT_ARROW)) this.x -= this.speed * timeScale;
+    if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) this.x += this.speed * timeScale;
 
     this.x = constrain(this.x, 22, width - 22);
     this.y = constrain(this.y, height * 0.45, height - 44);
@@ -135,7 +146,7 @@ class Bullet {
   }
 
   update() {
-    this.y -= this.speed;
+    this.y -= this.speed * getGameTimeScale();
   }
 
   draw() {
@@ -161,11 +172,12 @@ class Enemy {
   }
 
   update(player) {
+    const timeScale = getGameTimeScale();
     const dx = player.getHitX() - this.x;
     const dy = player.getHitY() - this.y;
     const d = sqrt(dx * dx + dy * dy) || 1;
-    this.x += (dx / d) * this.speed;
-    this.y += (dy / d) * this.speed;
+    this.x += (dx / d) * this.speed * timeScale;
+    this.y += (dy / d) * this.speed * timeScale;
   }
 
   draw() {
@@ -191,7 +203,7 @@ class FastEnemy {
   }
 
   update() {
-    this.y += this.speed;
+    this.y += this.speed * getGameTimeScale();
   }
 
   draw() {
@@ -220,8 +232,9 @@ class BouncerEnemy {
   }
 
   update() {
-    this.x += this.vx;
-    this.y += this.vy;
+    const timeScale = getGameTimeScale();
+    this.x += this.vx * timeScale;
+    this.y += this.vy * timeScale;
     if (this.x < this.size || this.x > width - this.size) this.vx *= -1;
   }
 
@@ -248,8 +261,9 @@ class BossBullet {
   }
 
   update() {
-    this.x += this.vx;
-    this.y += this.vy;
+    const timeScale = getGameTimeScale();
+    this.x += this.vx * timeScale;
+    this.y += this.vy * timeScale;
     if (this.bounce && (this.x < this.size || this.x > width - this.size)) this.vx *= -1;
     if (this.bounce && (this.y < this.size || this.y > height - this.size)) this.vy *= -1;
   }
@@ -285,14 +299,15 @@ class Boss2 {
   }
 
   update() {
+    const timeScale = getGameTimeScale();
     if (this.y < this.targetY) {
-      this.y += this.speed;
+      this.y += this.speed * timeScale;
       return;
     }
-    this.moveTimer += 0.045;
+    this.moveTimer += 0.045 * timeScale;
     this.x = width * 0.58 + sin(this.moveTimer) * min(110, width * 0.31);
 
-    this.shootTimer++;
+    this.shootTimer += timeScale;
     if (this.shootTimer >= this.shootInterval) {
       this.shoot();
       this.shootTimer = 0;
@@ -339,16 +354,17 @@ class Boss1 {
   }
 
   update() {
+    const timeScale = getGameTimeScale();
     if (this.y < this.targetY) {
-      this.y += this.speed;
+      this.y += this.speed * timeScale;
       return;
     }
 
-    this.moveTimer += 0.075;
+    this.moveTimer += 0.075 * timeScale;
     this.x = this.baseX + sin(this.moveTimer) * min(138, width * 0.38);
     this.y = this.targetY + sin(this.moveTimer * 1.9) * 30;
 
-    this.shootTimer++;
+    this.shootTimer += timeScale;
     if (this.shootTimer >= this.shootInterval) {
       this.shoot();
       this.shootTimer = 0;

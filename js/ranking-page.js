@@ -5,6 +5,14 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxd2Rnc2Fub2p5bmhpbW9kZ3l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMzYwOTUsImV4cCI6MjA5OTgxMjA5NX0.Rip29YLG3Ck-LEMtPVxBsuE8p1vnarmMdU_FoYDbOfU';
   const MAX_RANKING = 100;
 
+  function getProgressLabel(progress) {
+    return {
+      boss1: '第1ボス挑戦',
+      boss2: '第2ボス挑戦',
+      clear: '完全クリア'
+    }[progress] || '記録なし';
+  }
+
   function setStatus(message, isError) {
     const status = document.getElementById('ranking-page-status');
     if (!status) return;
@@ -47,7 +55,7 @@
     if (!records.length) {
       const row = document.createElement('tr');
       const cell = document.createElement('td');
-      cell.colSpan = 3;
+      cell.colSpan = 4;
       cell.textContent = 'まだ記録がありません';
       row.appendChild(cell);
       tbody.appendChild(row);
@@ -59,10 +67,13 @@
       const rank = document.createElement('td');
       const name = document.createElement('td');
       const score = document.createElement('td');
+      const progress = document.createElement('td');
       rank.textContent = String(index + 1);
       name.textContent = String(record.player_name || '').slice(0, 10);
       score.textContent = Math.max(0, Math.floor(Number(record.score) || 0)).toLocaleString('ja-JP') + '点';
-      row.append(rank, name, score);
+      progress.textContent = getProgressLabel(record.progress_stage);
+      progress.dataset.stage = record.progress_stage || 'unknown';
+      row.append(rank, name, score, progress);
       tbody.appendChild(row);
     });
   }
@@ -72,7 +83,7 @@
     renderRows([]);
     setStatus('ランキングを読み込んでいます...');
     try {
-      const query = '?select=player_name,score,created_at&order=score.desc,created_at.asc&limit=' + MAX_RANKING;
+      const query = '?select=player_name,score,progress_stage,created_at&order=score.desc,created_at.asc&limit=' + MAX_RANKING;
       const data = await supabaseRequest('/rest/v1/shooting_scores' + query, { method: 'GET' });
       renderRows(Array.isArray(data) ? data : []);
       setStatus(data.length ? '最新のランキングを表示しています。' : '現在、ランキング記録はありません。');
